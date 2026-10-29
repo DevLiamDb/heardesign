@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hear Setup</title>
+<style>
+/* Calme : fond uni, pas de lueur ni d'animation en boucle, une seule couleur d'accent, transitions courtes. */
+:root{
+  --bg:#1c1c1e; --card:#262628; --line:rgba(255,255,255,.07);
+  --txt:#f2f2f4; --dim:#8e8e93; --accent:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a;
+  --sortie:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box;margin:0;-webkit-user-select:none;user-select:none}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--txt);font:15px/1.5 "Segoe UI Variable Text","Segoe UI",-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+#lang{position:fixed;top:16px;right:20px;z-index:5;font-size:12.5px;color:var(--dim);cursor:pointer;padding:4px 10px;border-radius:99px;transition:color .2s var(--sortie),background .2s var(--sortie)}
+#lang:hover{color:var(--txt);background:rgba(255,255,255,.06)}
+.stage{position:fixed;inset:0}
+.page{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:40px 32px 64px;
+  opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .3s var(--sortie),transform .3s var(--sortie)}
+.page>:first-child{margin-top:auto}.page>:last-child{margin-bottom:auto}
+.page::-webkit-scrollbar{width:0}
+.page.active{opacity:1;transform:none;pointer-events:auto}
+.page.out{opacity:0;transform:none;transition-duration:.14s}   /* l'ancienne page part avant que la nouvelle arrive : jamais deux pages superposees */
+h1{font-size:28px;font-weight:600;letter-spacing:-.015em;text-align:center}
+h2{font-size:22px;font-weight:600;letter-spacing:-.01em;text-align:center}
+.sub{color:var(--dim);text-align:center;max-width:440px;margin-top:10px}
+.btns{display:flex;gap:10px;margin-top:28px;justify-content:center;flex-wrap:wrap}
+.btn{font:inherit;font-size:14px;font-weight:600;border:0;border-radius:10px;padding:10px 22px;color:var(--txt);background:rgba(255,255,255,.08);cursor:pointer;
+  transition:background .18s var(--sortie),transform .16s var(--sortie),opacity .2s}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{background:#2390ff}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn:focus-visible,.mod:focus-visible,.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.small{font-size:12.5px;color:var(--dim)}
+.logo{width:84px;height:84px;border-radius:20px;object-fit:cover}
+.logo,.check,.errico{flex:none}   /* jamais ecrases quand la page manque de hauteur */
+.halo{margin-bottom:26px}
+.in{opacity:0;animation:in .4s var(--sortie) forwards}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* diagnostic */
+.card{flex:none;width:min(540px,100%);background:var(--card);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);opacity:0;transition:opacity .3s var(--sortie)}
+.row:first-child{border-top:0}
+.row.show{opacity:1}
+.row .ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,.05);flex:none}
+.row .ico svg{width:16px;height:16px;stroke:var(--dim);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.row .mid{flex:1;min-width:0}
+.row .lab{font-weight:500;font-size:14px}
+.row .val{color:var(--dim);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .note{font-size:12px;margin-top:2px}
+.row.warn .note{color:var(--orange)} .row.bad .note{color:var(--red)}
+.st{width:20px;height:20px;flex:none;position:relative}
+.st .spin{position:absolute;inset:2px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:var(--dim);animation:rot 1s linear infinite}
+.st .res{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;opacity:0;transition:opacity .25s var(--sortie)}
+.st .res svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.row.ok .st .spin,.row.warn .st .spin,.row.bad .st .spin{display:none}
+.row.ok .res,.row.warn .res,.row.bad .res{opacity:1}
+.row.ok .res{background:var(--green)} .row.warn .res{background:var(--orange)} .row.bad .res{background:var(--red)}
+@keyframes rot{to{transform:rotate(360deg)}}
+.verdict{flex:none;width:min(540px,100%);margin-top:14px;border-radius:12px;padding:12px 18px;display:flex;gap:14px;align-items:center;opacity:0;transition:opacity .35s var(--sortie)}
+.verdict.show{opacity:1}
+.verdict .vi{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}
+.verdict .vi svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.verdict b{display:block;font-size:14px;font-weight:600}
+.verdict span{color:var(--dim);font-size:12.5px}
+.verdict.great{background:rgba(48,209,88,.08)} .verdict.great .vi{background:var(--green)}
+.verdict.warn{background:rgba(255,159,10,.08)} .verdict.warn .vi{background:var(--orange)}
+.verdict.blocked{background:rgba(255,69,58,.08)} .verdict.blocked .vi{background:var(--red)}
+/* options */
+.models{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(540px,100%)}
+.mod{position:relative;padding:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;transition:border-color .18s var(--sortie),background .18s var(--sortie)}
+.mod:hover{background:#2c2c2f}
+.mod.sel{border-color:var(--accent);background:rgba(10,132,255,.08)}
+.mod h3{font-size:15px;font-weight:600;margin-bottom:2px}
+.mod p{color:var(--dim);font-size:12.5px;margin-top:6px}
+.mod .size{font-size:12px;color:var(--dim)}
+.mod .badge{position:absolute;top:14px;right:14px;font-size:11px;font-weight:600;color:var(--green)}
+.opt{width:min(540px,100%);margin-top:14px}
+.opt .row{opacity:1;padding:13px 18px}
+.lieu .val{white-space:normal;word-break:break-all}
+.sw{width:42px;height:26px;border-radius:99px;background:#48484a;position:relative;cursor:pointer;transition:background .2s var(--sortie);flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .22s var(--sortie)}
+.sw.on{background:var(--green)} .sw.on::after{transform:translateX(16px)}
+.btn.lien{padding:6px 14px;font-size:13px;border-radius:8px;flex:none}
+.warnline{width:min(540px,100%);margin-top:10px;font-size:12.5px;color:var(--orange);min-height:18px;text-align:center}
+/* installation : une barre fine, un pourcentage, une phrase */
+.ringwrap{display:none}
+.prog{width:min(420px,100%);height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:30px}
+.prog i{display:block;height:100%;width:100%;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .5s linear}
+.pctnum{font-size:40px;font-weight:600;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+.pctnum small{font-size:20px;color:var(--dim);font-weight:500}
+.action{color:var(--dim);margin-top:4px;min-height:22px;text-align:center}
+.meta{display:flex;gap:16px;margin-top:6px;font-size:12.5px;color:var(--dim);min-height:18px;font-variant-numeric:tabular-nums}
+.steps{display:flex;flex-direction:column;gap:8px;margin-top:28px;width:min(300px,100%)}
+.chip{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim);transition:color .3s var(--sortie)}
+.chip i{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.18);display:grid;place-items:center;flex:none;transition:background .3s var(--sortie),border-color .3s var(--sortie)}
+.chip i svg{width:8px;height:8px;stroke:#fff;fill:none;stroke-width:3.4;opacity:0;stroke-linecap:round;stroke-linejoin:round}
+.chip.run{color:var(--txt)} .chip.run i{border-color:rgba(255,255,255,.25);border-top-color:var(--txt);animation:rot 1s linear infinite}
+.chip.ok,.chip.skip{color:var(--txt)} .chip.ok i{background:var(--green);border-color:var(--green)} .chip.ok i svg,.chip.skip i svg,.chip.warn i svg,.chip.err i svg{opacity:1}
+.chip.skip i{background:#636366;border-color:#636366}
+.chip.warn i{background:var(--orange);border-color:var(--orange)}
+.chip.err i{background:var(--red);border-color:var(--red)}
+/* fin */
+.check{width:56px;height:56px;border-radius:50%;background:var(--green);display:grid;place-items:center;opacity:0;animation:in .4s var(--sortie) .1s forwards}
+.check svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+.tuto{width:min(560px,100%);margin-top:22px}
+.tuto .row.show{opacity:1}
+.keys{display:flex;gap:5px;min-width:92px;justify-content:flex-start;align-items:center}
+.key{min-width:36px;height:30px;padding:0 9px;border-radius:7px;display:grid;place-items:center;font-weight:600;font-size:12.5px;background:#3a3a3d;box-shadow:0 1px 0 #111 ;color:var(--txt)}
+.keys .x{color:var(--dim);font-size:12px}
+.desc b{display:block;font-size:14px;font-weight:500} .desc span{color:var(--dim);font-size:12.5px}
+.trash{width:30px;height:30px;border-radius:50%;background:#1d1d1f;border:1px solid rgba(255,255,255,.1);display:grid;place-items:center}
+.trash svg{width:14px;height:14px;stroke:#ff6961;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pill{height:30px;border-radius:99px;background:#0c0c0e;border:1px solid #2a2a2e;display:flex;align-items:center;gap:3px;padding:0 13px}
+.pill s{display:block;width:3px;height:10px;border-radius:2px;background:#e5e5ea}
+.pill s:nth-child(2){height:16px}.pill s:nth-child(3){height:8px}.pill s:nth-child(4){height:14px}.pill s:nth-child(5){height:6px}
+pre{width:min(540px,100%);max-height:150px;overflow:auto;margin-top:16px;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.3);font:12px/1.45 Consolas,monospace;color:#c7c7cc;white-space:pre-wrap;user-select:text;-webkit-user-select:text}
+.errico{width:52px;height:52px;border-radius:50%;background:rgba(255,69,58,.14);display:grid;place-items:center;margin-bottom:16px}
+.errico svg{width:22px;height:22px;stroke:var(--red);fill:none;stroke-width:2.6;stroke-linecap:round}
+.dots{position:fixed;bottom:22px;left:0;right:0;display:flex;gap:6px;justify-content:center;z-index:3}
+.dots b{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);transition:background .3s var(--sortie),width .3s var(--sortie)}
+.dots b.on{background:var(--dim);width:18px;border-radius:99px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="lang"></div>
+<div class="stage">
+
+<section class="page" id="p-welcome">
+  <div class="halo"><img class="logo" src="/logo.png" alt=""></div>
+  <h1 class="in" style="animation-delay:.15s" data-i="w_title"></h1>
+  <p class="sub in" style="animation-delay:.3s" data-i="w_sub"></p>
+  <div class="btns in" style="animation-delay:.45s"><button class="btn primary" id="b-start" data-i="w_btn"></button></div>
+  <p class="small in" style="animation-delay:.6s;margin-top:16px" data-i="w_fine"></p>
+</section>
+
+<section class="page" id="p-check">
+  <h2 data-i="c_title"></h2>
+  <p class="sub" style="margin-bottom:12px" data-i="c_sub"></p>
+  <div class="card" id="rows"></div>
+  <div class="verdict" id="verdict"><div class="vi" id="vi"></div><div><b id="vt"></b><span id="vs"></span></div></div>
+  <div class="btns">
+    <button class="btn" id="b-recheck" data-i="c_again" style="display:none"></button>
+    <button class="btn primary" id="b-next" data-i="c_next" disabled></button>
+  </div>
+</section>
+
+<section class="page" id="p-options">
+  <h2 data-i="o_title"></h2>
+  <p class="sub" style="margin-bottom:16px" data-i="o_sub"></p>
+  <div class="models">
+    <div class="mod" id="m-fast" data-m="fast"><span class="badge" id="bd-fast" style="display:none" data-i="o_rec"></span><h3 data-i="o_fast"></h3><div class="size" data-i="o_fast_s"></div><p data-i="o_fast_p"></p></div>
+    <div class="mod" id="m-precise" data-m="precise"><span class="badge" id="bd-precise" style="display:none" data-i="o_rec"></span><h3 data-i="o_prec"></h3><div class="size" data-i="o_prec_s"></div><p data-i="o_prec_p"></p></div>
+  </div>
+  <div class="warnline" id="o-warn"></div>
+  <div class="card opt">
+    <div class="row lieu"><div class="mid"><div class="lab" data-i="o_dir"></div><div class="val" id="o-dir"></div><div class="note" id="o-dir-err" style="color:var(--orange)"></div></div><button class="btn lien" id="b-dir" data-i="o_dir_b"></button></div>
+    <div class="row"><div class="mid"><div class="lab" data-i="o_start"></div><div class="val" data-i="o_start_s"></div></div><div class="sw on" id="sw-startup"></div></div>
+    <div class="row"><div class="mid"><div class="lab" data-i="o_desk"></div></div><div class="sw on" id="sw-desktop"></div></div>
+  </div>
+  <p class="small" style="margin-top:12px" id="o-sum"></p>
+  <div class="btns"><button class="btn" id="b-back" data-i="back"></button><button class="btn primary" id="b-install" data-i="o_btn"></button></div>
+</section>
+
+<section class="page" id="p-install">
+  <div class="ringwrap">
+    <svg viewBox="0 0 176 176"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#bf5af2"/></linearGradient></defs>
+      <circle class="bgc" cx="88" cy="88" r="82"/><circle class="fg" id="ring" cx="88" cy="88" r="82"/></svg>
+    <img class="logo" src="/logo.png" alt="" style="width:128px;height:128px;border-radius:30px">
+  </div>
+  <img class="logo" src="/logo.png" alt="">
+  <div class="prog"><i id="barre"></i></div>
+  <div class="pctnum"><span id="pct">0</span><small>%</small></div>
+  <div class="action" id="action"></div>
+  <div class="meta"><span id="m-speed"></span><span id="m-size"></span><span id="m-eta"></span></div>
+  <div class="steps" id="steps"></div>
+  <p class="small" style="margin-top:18px" data-i="i_keep"></p>
+</section>
+
+<section class="page" id="p-done">
+  <div class="check"><svg viewBox="0 0 44 44"><path d="M10 23l9 9 16-19"/></svg></div>
+  <h2 style="margin-top:16px" data-i="d_title"></h2>
+  <p class="sub" data-i="d_sub"></p>
+  <div class="card tuto" id="tuto">
+    <div class="row"><div class="keys"><span class="key press">F9</span></div><div class="desc"><b data-i="t1"></b><span data-i="t1s"></span></div></div>
+    <div class="row"><div class="keys"><span class="key">F9</span><span class="x">×2</span></div><div class="desc"><b data-i="t2"></b><span data-i="t2s"></span></div></div>
+    <div class="row"><div class="keys"><span class="key">F8</span></div><div class="desc"><b data-i="t3"></b><span data-i="t3s"></span></div></div>
+    <div class="row"><div class="keys"><span class="trash"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg></span><span class="key">Esc</span></div><div class="desc"><b data-i="t4"></b><span data-i="t4s"></span></div></div>
+    <div class="row"><div class="keys"><div class="pill"><s></s><s></s><s></s><s></s><s></s></div></div><div class="desc"><b data-i="t5"></b><span data-i="t5s"></span></div></div>
+  </div>
+  <div class="btns"><button class="btn" id="b-close" data-i="d_close"></button><button class="btn primary" id="b-launch" data-i="d_launch"></button></div>
+  <p class="small" style="margin-top:12px" data-i="d_first"></p>
+</section>
+
+<section class="page" id="p-error">
+  <div class="errico"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+  <h2 id="e-title"></h2>
+  <p class="sub" id="e-hint"></p>
+  <pre id="e-detail"></pre>
+  <div class="btns"><button class="btn" id="b-copy" data-i="e_copy"></button><button class="btn" id="b-ecl" data-i="d_close"></button><button class="btn primary" id="b-retry" data-i="e_retry"></button></div>
+</section>
+
+<section class="page" id="p-unin">
+  <div class="halo"><img class="logo" src="/logo.png" alt=""></div>
+  <h2 data-i="u_title"></h2>
+  <p class="sub" data-i="u_sub"></p>
+  <div class="btns"><button class="btn" id="b-ucancel" data-i="u_cancel"></button><button class="btn primary" id="b-uok" data-i="u_ok" style="background:linear-gradient(180deg,#ff5a4f,#e0352b);box-shadow:0 6px 22px rgba(255,69,58,.35)"></button></div>
+</section>
+
+<section class="page" id="p-removed">
+  <div class="check"><svg viewBox="0 0 44 44"><path d="M10 23l9 9 16-19"/></svg></div>
+  <h2 style="margin-top:16px" data-i="u_done"></h2>
+  <p class="sub" data-i="u_done_s"></p>
+  <div class="btns"><button class="btn primary" id="b-uclose" data-i="d_close"></button></div>
+</section>
+
+</div>
+<div class="dots" id="dots"><b></b><b></b><b></b><b></b><b></b></div>
+
+<script>
+const TOKEN="__TOKEN__";
+const H={headers:{'X-Token':TOKEN}};
+const api=(p,o)=>fetch(p,Object.assign({},H,o||{})).then(r=>r.json().catch(()=>({})));
+const apiPost=(p,b)=>fetch(p,{method:'POST',headers:{'X-Token':TOKEN,'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+const $=s=>document.querySelector(s);
+
+const TX={
+en:{
+ w_title:"Welcome to Hear",w_sub:"Press a key, speak, and your words appear as text — anywhere on your PC. Everything runs locally: your voice never leaves your computer.",
+ w_btn:"Get started",w_fine:"Setup downloads about 1 GB and takes a few minutes.",
+ c_title:"Checking your PC",c_sub:"Making sure Hear will run smoothly.",c_next:"Continue",c_again:"Check again",
+ r_os:"Windows",r_cpu:"Processor",r_ram:"Memory",r_disk:"Free space",r_mic:"Microphone",r_net:"Internet",r_vc:"System components",
+ v_mic_ok:"Detected",v_net_ok:"Connected",v_net_no:"Not connected",v_vc_ok:"Installed",v_vc_no:"Will be installed",v_mic_no:"None found",
+ n_os_bad:"Windows is too old — Hear needs Windows 10 (version 1809) or later.",n_os_old:"An old Windows 10 version. Updating Windows is recommended.",
+ n_cpu_noavx:"No AVX2 support: dictation will be noticeably slower.",n_cpu_slow:"Few processor cores: dictation may feel slower.",
+ n_ram_bad:"Not enough memory to run the speech model.",n_ram_low:"Limited memory: stick to the Fast model and close heavy apps.",
+ n_disk_bad:"Not enough free space (about 3 GB needed).",n_disk_low:"Space is a bit tight; the Precise model needs ~3 GB.",
+ n_mic_none:"No microphone detected. Plug one in before using Hear.",n_net_none:"An internet connection is needed to download the models.",n_net_partial:"Some download servers are unreachable; the install may fail.",
+ n_vc_missing:"Windows may ask for permission to install it.",
+ vd_great:"Your PC is perfect for Hear",vd_great_s:"Everything checks out. Hear will run great.",vd_great_p:"Everything checks out — you can even use the most accurate model.",
+ vd_warn:"Hear will work, with some limits",vd_warn_s:"Nothing blocks the installation. See the notes above.",
+ vd_blocked:"This PC can't run Hear",vd_blocked_s:"Fix the items in red, then check again.",
+ o_title:"Choose your speech model",o_sub:"You can change it later in Hear's settings.",o_rec:"Recommended",
+ o_fast:"Fast",o_fast_s:"≈ 0.7 GB download",o_fast_p:"Very quick, 25 languages. Great on almost any PC.",
+ o_prec:"Precise",o_prec_s:"+ 1 GB more",o_prec_p:"Most accurate, detects the language you speak. Needs a stronger PC.",
+ o_weak:"Your PC is a bit light for the Precise model — Fast is the safer choice.",
+ o_start:"Start Hear with Windows",o_start_s:"Always ready in the system tray",o_desk:"Add a desktop shortcut",
+ o_sum:"Download ≈ {dl} · needs {disk} of disk space · installs to {dir}",o_sum2:"Download ≈ {dl} · needs {disk} of disk space",
+ o_dir:"Install location",o_dir_b:"Change…",o_dir_err:"Hear can't write in that folder. Choose another one.",a_retry:"Just a moment, trying again…",o_btn:"Install",back:"Back",
+ i_keep:"Keep this window open. You can keep using your PC meanwhile.",
+ st_fichiers:"Copying Hear",st_vc:"System components",st_python:"Python runtime",st_pip:"Libraries",st_modeles:"Speech models",st_finition:"Finishing touches",
+ a_start:"Getting ready…",a_fichiers:"Copying Hear…",a_vc:"Installing system components…",a_python_dl:"Downloading Python…",a_python_inst:"Installing Python…",a_pip:"Installing libraries — {x}",a_pip0:"Installing libraries…",a_modeles:"Downloading speech models — {x}",a_modeles0:"Downloading speech models…",a_finition:"Finishing touches…",
+ left:"{x} left",
+ d_title:"Hear is ready",d_sub:"Here's everything you need to know.",
+ t1:"Start & stop dictating",t1s:"Press once, speak, press again — the text appears where your cursor is.",
+ t2:"Open settings",t2s:"Press F9 twice quickly, or click the Hear icon near the clock.",
+ t3:"Pause",t3s:"Pauses and resumes your recording.",
+ t4:"Cancel & delete",t4s:"Esc or the trash button next to the bar throws the recording away.",
+ t5:"The floating bar",t5s:"Shows when Hear is listening and writing.",
+ d_close:"Close",d_launch:"Launch Hear",d_first:"The first launch takes a few seconds while the model loads.",
+ e_retry:"Try again",e_copy:"Copy report",e_copied:"Copied ✓",
+ e_net:"Download problem",e_net_h:"Check your internet connection and try again. Files already downloaded are kept.",
+ e_python:"Python couldn't be installed",e_python_h:"An antivirus or a restriction may be blocking it. Try again.",
+ e_pip:"Libraries couldn't be installed",e_pip_h:"Check your connection and that your antivirus isn't blocking the install, then try again.",
+ e_files:"Couldn't copy the files",e_files_h:"Close Hear if it is running, then try again.",
+ e_other:"Something went wrong",e_other_h:"Try again. If it keeps failing, copy the report and send it to whoever shared Hear with you.",
+ u_title:"Remove Hear?",u_sub:"This removes Hear, its models and its shortcuts from your PC.",u_cancel:"Cancel",u_ok:"Remove",u_done:"Hear has been removed",u_done_s:"Thanks for trying it."
+},
+fr:{
+ w_title:"Bienvenue dans Hear",w_sub:"Appuyez sur une touche, parlez, et vos mots deviennent du texte — partout sur votre PC. Tout fonctionne en local : votre voix ne quitte jamais votre ordinateur.",
+ w_btn:"Commencer",w_fine:"L'installation télécharge environ 1 Go et prend quelques minutes.",
+ c_title:"Analyse de votre PC",c_sub:"On vérifie que Hear tournera bien.",c_next:"Continuer",c_again:"Revérifier",
+ r_os:"Windows",r_cpu:"Processeur",r_ram:"Mémoire",r_disk:"Espace libre",r_mic:"Microphone",r_net:"Internet",r_vc:"Composants système",
+ v_mic_ok:"Détecté",v_net_ok:"Connecté",v_net_no:"Non connecté",v_vc_ok:"Installés",v_vc_no:"Seront installés",v_mic_no:"Aucun trouvé",
+ n_os_bad:"Windows est trop ancien — Hear demande Windows 10 (version 1809) ou plus.",n_os_old:"Ancienne version de Windows 10. Une mise à jour est conseillée.",
+ n_cpu_noavx:"Pas de support AVX2 : la dictée sera nettement plus lente.",n_cpu_slow:"Peu de cœurs : la dictée pourra sembler plus lente.",
+ n_ram_bad:"Pas assez de mémoire pour faire tourner le modèle vocal.",n_ram_low:"Mémoire limitée : restez sur le modèle Rapide et fermez les applis lourdes.",
+ n_disk_bad:"Pas assez d'espace libre (environ 3 Go nécessaires).",n_disk_low:"Espace un peu juste ; le modèle Précis demande ~3 Go.",
+ n_mic_none:"Aucun micro détecté. Branchez-en un avant d'utiliser Hear.",n_net_none:"Une connexion internet est nécessaire pour télécharger les modèles.",n_net_partial:"Certains serveurs de téléchargement sont injoignables ; l'installation peut échouer.",
+ n_vc_missing:"Windows peut demander une autorisation pour l'installer.",
+ vd_great:"Votre PC est parfait pour Hear",vd_great_s:"Tout est bon. Hear tournera très bien.",vd_great_p:"Tout est bon — vous pouvez même utiliser le modèle le plus précis.",
+ vd_warn:"Hear fonctionnera, avec quelques limites",vd_warn_s:"Rien ne bloque l'installation. Voir les remarques ci-dessus.",
+ vd_blocked:"Ce PC ne peut pas faire tourner Hear",vd_blocked_s:"Corrigez les points en rouge, puis revérifiez.",
+ o_title:"Choisissez votre modèle vocal",o_sub:"Vous pourrez le changer plus tard dans les réglages de Hear.",o_rec:"Conseillé",
+ o_fast:"Rapide",o_fast_s:"≈ 0,7 Go à télécharger",o_fast_p:"Très véloce, 25 langues. Parfait sur presque tous les PC.",
+ o_prec:"Précis",o_prec_s:"+ 1 Go de plus",o_prec_p:"Le plus précis, détecte la langue parlée. Demande un PC plus costaud.",
+ o_weak:"Votre PC est un peu léger pour le modèle Précis — Rapide est plus sûr.",
+ o_start:"Lancer Hear avec Windows",o_start_s:"Toujours prêt dans la zone de notification",o_desk:"Ajouter un raccourci sur le bureau",
+ o_sum:"Téléchargement ≈ {dl} · {disk} d'espace disque · installé dans {dir}",o_sum2:"Téléchargement ≈ {dl} · {disk} d'espace disque",
+ o_dir:"Emplacement",o_dir_b:"Modifier…",o_dir_err:"Hear ne peut pas écrire dans ce dossier. Choisissez-en un autre.",a_retry:"Un instant, on réessaie…",o_btn:"Installer",back:"Retour",
+ i_keep:"Gardez cette fenêtre ouverte. Vous pouvez continuer à utiliser votre PC.",
+ st_fichiers:"Copie de Hear",st_vc:"Composants système",st_python:"Environnement Python",st_pip:"Bibliothèques",st_modeles:"Modèles vocaux",st_finition:"Finitions",
+ a_start:"Préparation…",a_fichiers:"Copie de Hear…",a_vc:"Installation des composants système…",a_python_dl:"Téléchargement de Python…",a_python_inst:"Installation de Python…",a_pip:"Installation des bibliothèques — {x}",a_pip0:"Installation des bibliothèques…",a_modeles:"Téléchargement des modèles vocaux — {x}",a_modeles0:"Téléchargement des modèles vocaux…",a_finition:"Finitions…",
+ left:"{x} restantes",
+ d_title:"Hear est prêt",d_sub:"Voici tout ce qu'il faut savoir.",
+ t1:"Démarrer et arrêter la dictée",t1s:"Appuyez une fois, parlez, rappuyez — le texte s'écrit là où se trouve votre curseur.",
+ t2:"Ouvrir les réglages",t2s:"Appuyez deux fois vite sur F9, ou cliquez sur l'icône Hear près de l'horloge.",
+ t3:"Pause",t3s:"Met en pause et reprend l'enregistrement.",
+ t4:"Annuler et supprimer",t4s:"Échap ou le bouton poubelle à côté de la barre jette l'enregistrement.",
+ t5:"La barre flottante",t5s:"Montre quand Hear écoute et écrit.",
+ d_close:"Fermer",d_launch:"Lancer Hear",d_first:"Le premier lancement prend quelques secondes, le temps de charger le modèle.",
+ e_retry:"Réessayer",e_copy:"Copier le rapport",e_copied:"Copié ✓",
+ e_net:"Problème de téléchargement",e_net_h:"Vérifiez votre connexion internet et réessayez. Les fichiers déjà téléchargés sont conservés.",
+ e_python:"Python n'a pas pu être installé",e_python_h:"Un antivirus ou une restriction le bloque peut-être. Réessayez.",
+ e_pip:"Les bibliothèques n'ont pas pu être installées",e_pip_h:"Vérifiez votre connexion et que votre antivirus ne bloque pas l'installation, puis réessayez.",
+ e_files:"Impossible de copier les fichiers",e_files_h:"Fermez Hear s'il est ouvert, puis réessayez.",
+ e_other:"Quelque chose s'est mal passé",e_other_h:"Réessayez. Si ça persiste, copiez le rapport et envoyez-le à la personne qui vous a donné Hear.",
+ u_title:"Supprimer Hear ?",u_sub:"Cela retire Hear, ses modèles et ses raccourcis de votre PC.",u_cancel:"Annuler",u_ok:"Supprimer",u_done:"Hear a été supprimé",u_done_s:"Merci de l'avoir essayé."
+}};
+let L=(navigator.language||'en').toLowerCase().startsWith('fr')?'fr':'en';
+const t=(k,p)=>{let s=(TX[L][k]??TX.en[k]??k);if(p)for(const x in p)s=s.replace('{'+x+'}',p[x]);return s};
+function applyLang(){
+  document.documentElement.lang=L;
+  document.querySelectorAll('[data-i]').forEach(e=>{e.textContent=t(e.dataset.i)});
+  $('#lang').textContent=L==='fr'?'English':'Français';
+  if(state.rep) renderRows(true);
+  refreshOptions(); renderSteps();
+  if(lastSt) paintInstall(lastSt);
+}
+$('#lang').onclick=()=>{L=L==='fr'?'en':'fr';applyLang()};
+
+/* ---------- navigation ---------- */
+const ORDER=['welcome','check','options','install','done'];
+let cur=null;
+function go(name){
+  const nxt=$('#p-'+name); if(cur===name) return;
+  if(cur){const o=$('#p-'+cur);o.classList.remove('active');o.classList.add('out');setTimeout(()=>o.classList.remove('out'),600)}
+  setTimeout(()=>nxt.classList.add('active'),cur?160:30);
+  cur=name;
+  const i=ORDER.indexOf(name);
+  document.querySelectorAll('#dots b').forEach((b,k)=>b.classList.toggle('on',k===i));
+  $('#dots').style.visibility=(i<0||name==='done')?'hidden':'visible';
+  energy.target=(name==='install')?1:(name==='done'?.25:.4);
+  if(name==='done') revealTuto();
+}
+
+/* ---------- state ---------- */
+const state={rep:null,model:'fast',startup:true,desktop:true,info:{}};
+let lastSt=null;
+
+/* ---------- diagnostic ---------- */
+const ICONS={
+ os:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+ cpu:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+ ram:'<rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M6 8v8M10 8v8M14 8v8M18 8v8"/>',
+ disk:'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+ mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4"/>',
+ net:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
+ vc:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/>'
+};
+const SVG={ok:'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',warn:'<svg viewBox="0 0 24 24"><path d="M12 6v7M12 17.5v.5"/></svg>',bad:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'};
+const IDS=['os','cpu','ram','disk','mic','net','vc'];
+function valeur(l){
+  if(l.id==='mic') return l.statut==='ok'?t('v_mic_ok'):t('v_mic_no');
+  if(l.id==='net') return l.statut==='bad'?t('v_net_no'):t('v_net_ok');
+  if(l.id==='vc') return l.statut==='ok'?t('v_vc_ok'):t('v_vc_no');
+  return L==='fr'?(l.valeur||'').replace(/ GB$/,' Go'):l.valeur;
+}
+function renderRows(resolved){
+  const box=$('#rows'); const prev=[...box.children].map(r=>r.className);
+  box.innerHTML='';
+  IDS.forEach((id,k)=>{
+    const l=state.rep&&state.rep.lignes.find(x=>x.id===id);
+    const d=document.createElement('div'); d.className='row'; d.id='row-'+id;
+    d.innerHTML=`<div class="ico"><svg viewBox="0 0 24 24">${ICONS[id]}</svg></div><div class="mid"><div class="lab">${t('r_'+id)}</div><div class="val"></div><div class="note"></div></div><div class="st"><div class="spin"></div><div class="res"></div></div>`;
+    box.appendChild(d);
+    if(resolved&&l){fillRow(d,l);d.classList.add('show')}
+    else if(prev[k]) d.className=prev[k];
+  });
+}
+function fillRow(d,l){
+  d.classList.add(l.statut);
+  d.querySelector('.val').textContent=valeur(l);
+  d.querySelector('.note').textContent=l.note?t('n_'+l.note):'';
+  d.querySelector('.res').innerHTML=SVG[l.statut];
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let checking=0;
+async function runCheck(force){
+  const my=++checking;
+  $('#b-next').disabled=true; $('#b-recheck').style.display='none';
+  $('#verdict').classList.remove('show');
+  state.rep=null; renderRows(false);
+  const rows=[...$('#rows').children];
+  const fetchP=api('/api/check'+(force?'?force=1':''));
+  for(const r of rows){ if(my!==checking) return; r.classList.add('show'); await sleep(140); }
+  const rep=await fetchP; state.rep=rep;
+  for(const l of rep.lignes){
+    if(my!==checking) return;
+    await sleep(420);
+    const d=$('#row-'+l.id); if(d) fillRow(d,l);
+  }
+  await sleep(450); if(my!==checking) return;
+  const v=$('#verdict'); v.className='verdict '+rep.verdict;
+  $('#vi').innerHTML=rep.verdict==='great'?SVG.ok:(rep.verdict==='warn'?SVG.warn:SVG.bad);
+  $('#vt').textContent=t('vd_'+rep.verdict);
+  $('#vs').textContent=rep.verdict==='great'?(rep.recommande==='precise'?t('vd_great_p'):t('vd_great_s')):t('vd_'+rep.verdict+'_s');
+  requestAnimationFrame(()=>v.classList.add('show'));
+  $('#b-next').disabled=!!rep.bloquant;
+  $('#b-recheck').style.display=(rep.verdict!=='great')?'':'none';
+  if(!state.touched) state.model=rep.recommande;
+}
+$('#b-start').onclick=()=>{go('check');runCheck(false)};
+$('#b-recheck').onclick=()=>runCheck(true);
+$('#b-next').onclick=()=>{refreshOptions();go('options')};
+
+/* ---------- options ---------- */
+function refreshOptions(){
+  const rep=state.rep; if(!rep) return;
+  ['fast','precise'].forEach(m=>{$('#m-'+m).classList.toggle('sel',state.model===m);$('#bd-'+m).style.display=(rep.recommande===m)?'':'none'});
+  $('#o-warn').textContent=(state.model==='precise'&&rep.recommande!=='precise')?t('o_weak'):'';
+  $('#sw-startup').classList.toggle('on',state.startup); $('#sw-desktop').classList.toggle('on',state.desktop);
+  const p=state.model==='precise';
+  const dl=p?'1.9 GB':'1 GB', disk=p?'3 GB':'2 GB';
+  const dir=(state.info.dossier||'');
+  $('#o-sum').textContent=t('o_sum2',{dl:L==='fr'?dl.replace('.',',').replace('GB','Go'):dl,disk:L==='fr'?disk.replace('GB','Go'):disk});
+  $('#o-dir').textContent=dir;
+}
+document.querySelectorAll('.mod').forEach(e=>e.onclick=()=>{state.model=e.dataset.m;state.touched=true;refreshOptions()});
+$('#sw-startup').onclick=()=>{state.startup=!state.startup;refreshOptions()};
+$('#sw-desktop').onclick=()=>{state.desktop=!state.desktop;refreshOptions()};
+$('#b-back').onclick=()=>go('check');
+$('#b-dir').onclick=async()=>{
+  const b=$('#b-dir'); b.disabled=true; $('#o-dir-err').textContent='';
+  const r=await fetch('/api/dossier',{method:'POST',headers:{'X-Token':TOKEN}}).then(x=>x.json()).catch(()=>({}));
+  b.disabled=false;
+  if(r.dossier) state.info.dossier=r.dossier;
+  if(r.erreur==='write') $('#o-dir-err').textContent=t('o_dir_err');
+  refreshOptions();
+};
+$('#b-install').onclick=async()=>{
+  await apiPost('/api/start',{precise:state.model==='precise',startup:state.startup,desktop:state.desktop});
+  lastSt=null; go('install'); startPolling();
+};
+
+/* ---------- installation ---------- */
+const STEP_IDS=['fichiers','vc','python','pip','modeles','finition'];
+function renderSteps(){
+  const box=$('#steps'); const old={};
+  [...box.children].forEach(c=>old[c.dataset.id]=c.className);
+  box.innerHTML='';
+  STEP_IDS.forEach(id=>{
+    const c=document.createElement('div'); c.className=old[id]||'chip'; c.dataset.id=id;
+    c.innerHTML=`<i><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none"/></svg></i><span>${t('st_'+id)}</span>`;
+    box.appendChild(c);
+  });
+}
+function fmtBytes(n){return n>=1e9?(n/1e9).toFixed(2)+(L==='fr'?' Go':' GB'):(n/1e6).toFixed(0)+(L==='fr'?' Mo':' MB')}
+function fmtEta(s){if(s<=0)return'';if(s<60)return s+' s';const m=Math.floor(s/60);return m+' min '+String(s%60).padStart(2,'0')+' s'}
+let shownPct=0;
+function paintInstall(s){
+  const C=515;
+  $('#ring').style.strokeDashoffset=C*(1-s.pct/100);
+  $('#barre').style.transform='scaleX('+(s.pct/100)+')';
+  energy.target=1;
+  s.etapes.forEach(e=>{const c=document.querySelector(`#steps [data-id="${e.id}"]`); if(c) c.className='chip '+(e.statut==='wait'?'':e.statut)});
+  const run=s.etapes.find(e=>e.statut==='run');
+  let txt=t('a_start');
+  if(run&&s.detail==='retry') txt=t('a_retry');
+  else if(run){
+    const d=s.detail;
+    if(run.id==='fichiers') txt=t('a_fichiers');
+    else if(run.id==='vc') txt=t('a_vc');
+    else if(run.id==='python') txt=d==='python-inst'?t('a_python_inst'):t('a_python_dl');
+    else if(run.id==='pip') txt=d?t('a_pip',{x:d}):t('a_pip0');
+    else if(run.id==='modeles') txt=d?t('a_modeles',{x:d}):t('a_modeles0');
+    else txt=t('a_finition');
+  }
+  $('#action').textContent=txt;
+  const mod=run&&run.id==='modeles';
+  $('#m-speed').textContent=mod&&s.vitesse>0?(s.vitesse/1e6).toFixed(1)+' '+(L==='fr'?'Mo/s':'MB/s'):'';
+  $('#m-size').textContent=mod&&s.total>0?fmtBytes(s.octets)+' / '+fmtBytes(s.total):'';
+  $('#m-eta').textContent=mod&&s.reste>0?t('left',{x:fmtEta(s.reste)}):'';
+}
+let pollT=null;
+function startPolling(){
+  clearInterval(pollT);
+  pollT=setInterval(async()=>{
+    const s=await api('/api/state'); if(!s||!s.phase) return;
+    lastSt=s;
+    // pourcentage affiche : montee douce
+    if(s.phase==='install'||s.phase==='done'){ paintInstall(s); animatePct(s.pct); }
+    if(s.phase==='done'){clearInterval(pollT);setTimeout(()=>{animatePct(100);go('done')},900)}
+    if(s.phase==='error'){clearInterval(pollT);showError(s)}
+  },350);
+}
+let pctTarget=0,pctRaf=0;
+function animatePct(v){pctTarget=v; if(!pctRaf) tickPct()}
+function tickPct(){
+  shownPct+=(pctTarget-shownPct)*.12; if(Math.abs(pctTarget-shownPct)<.05) shownPct=pctTarget;
+  $('#pct').textContent=Math.floor(shownPct);
+  pctRaf=(shownPct!==pctTarget)?requestAnimationFrame(tickPct):0;
+}
+function showError(s){
+  const c=['net','python','pip','files'].includes(s.code)?s.code:'other';
+  $('#e-title').textContent=t('e_'+c); $('#e-hint').textContent=t('e_'+c+'_h');
+  $('#e-detail').textContent=s.erreur||'';
+  energy.target=.2;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('#p-error').classList.add('active'); cur='error'; $('#dots').style.visibility='hidden';
+}
+$('#b-retry').onclick=async()=>{
+  $('#p-error').classList.remove('active'); cur=null; shownPct=0; pctTarget=0; $('#pct').textContent='0'; renderSteps();
+  await apiPost('/api/start',{precise:state.model==='precise',startup:state.startup,desktop:state.desktop});
+  go('install'); startPolling();
+};
+$('#b-copy').onclick=async()=>{
+  const r=await fetch('/api/log',H); const txt=await r.text();
+  try{await navigator.clipboard.writeText(txt)}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
+  $('#b-copy').textContent=t('e_copied'); setTimeout(()=>$('#b-copy').textContent=t('e_copy'),1800);
+};
+$('#b-ecl').onclick=$('#b-close').onclick=$('#b-uclose').onclick=()=>{apiPost('/api/quit');setTimeout(()=>window.close(),300)};
+$('#b-launch').onclick=()=>{apiPost('/api/launch');setTimeout(()=>window.close(),1000)};
+
+/* ---------- tuto ---------- */
+function revealTuto(){
+  [...document.querySelectorAll('#tuto .row')].forEach((r,i)=>setTimeout(()=>r.classList.add('show'),900+i*220));
+}
+
+/* ---------- uninstall ---------- */
+$('#b-ucancel').onclick=()=>{apiPost('/api/quit');setTimeout(()=>window.close(),300)};
+$('#b-uok').onclick=async()=>{
+  await apiPost('/api/uninstall');
+  const w=setInterval(async()=>{const s=await api('/api/state'); if(s.phase==='removed'){clearInterval(w);go2('removed')}},400);
+};
+function go2(name){ if(cur){$('#p-'+cur).classList.remove('active')} setTimeout(()=>$('#p-'+name).classList.add('active'),200); cur=name; $('#dots').style.visibility='hidden'; }
+
+/* ---------- ambiance : plus d'animation de fond (installateur calme) ---------- */
+const energy={v:0,target:0};
+
+/* ---------- demarrage ---------- */
+setInterval(()=>fetch('/api/ping',H).catch(()=>{}),2000); fetch('/api/ping',H);
+(async function(){
+  state.info=await api('/api/info');
+  renderSteps(); renderRows(false); applyLang();
+  if(state.info.uninstall) go2('unin'); else go('welcome');
+  if(state.info.uninstall){ $('#p-unin').classList.add('active'); }
+  // si une installation tourne deja (fenetre rouverte)
+  const s=await api('/api/state'); if(s.phase==='install'){go('install');startPolling()}
+})();
+</script>
+</body>
+</html>

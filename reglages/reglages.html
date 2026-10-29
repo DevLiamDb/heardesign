@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hear</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --fond:#1e1e20; --carte:#2c2c2f; --sep:rgba(255,255,255,.08); --texte:#f5f5f7; --gris:#98989d;
+  --puce:#444448; --puce-h:#4e4e53; --bleu:#0a84ff; --vert:#30d158; --rouge:#ff453a; --piste:#18181a;
+  --ressort:cubic-bezier(.32,.72,0,1); --sortie:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--fond);color:var(--texte);overflow:hidden;
+  font:14px/1.35 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;animation:entree .25s var(--sortie) both}
+@keyframes entree{from{opacity:0;transform:scale(.98) translateY(6px)}to{opacity:1;transform:none}}
+body.sortie{animation:sortie .14s var(--sortie) forwards}
+@keyframes sortie{to{opacity:0;transform:scale(.97)}}
+
+/* barre du haut */
+.haut{height:44px;flex:none;display:flex;align-items:center;padding:0 16px}
+.lumieres{display:flex;gap:8px;padding:8px 0}
+.lumieres i{width:13px;height:13px;border-radius:50%;display:grid;place-items:center;cursor:default;
+  transition:filter .15s, transform .16s var(--sortie)}
+.lumieres i:nth-child(1){background:#ff5f57}.lumieres i:nth-child(2){background:#febc2e}.lumieres i:nth-child(3){background:#28c840}
+.lumieres i:active{filter:brightness(.8);transform:scale(.92)}
+.lumieres svg{width:7px;height:7px;opacity:0;transition:opacity .12s;stroke:rgba(0,0,0,.55);stroke-width:1.5;stroke-linecap:round;fill:none}
+.lumieres:hover svg{opacity:1}
+.drag{flex:1;height:100%}
+
+/* contenu */
+.corps{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 28px 22px;scrollbar-width:thin;scrollbar-color:#4a4a4f transparent}
+.corps::-webkit-scrollbar{width:8px}.corps::-webkit-scrollbar-thumb{background:#4a4a4f;border-radius:8px;border:2px solid var(--fond)}
+.entete{display:flex;align-items:center;gap:14px;margin:2px 0 18px}
+.entete img{width:48px;height:48px;border-radius:11px}
+.entete h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.3px}
+.entete p{margin:1px 0 0;color:var(--gris);font-size:13px}
+
+.section{margin-bottom:10px}
+.titre{display:flex;align-items:center;gap:8px;padding:8px 4px;color:var(--gris);font-size:12px;letter-spacing:.5px;
+  text-transform:uppercase;cursor:default;transition:color .15s}
+.titre:hover{color:#c4c4c8}
+.titre svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .2s var(--sortie)}
+.section.ferme .titre svg{transform:rotate(-90deg)}
+.plie{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .28s var(--ressort),opacity .2s var(--sortie)}
+.section.ferme .plie{grid-template-rows:0fr;opacity:0}
+.plie>.in{min-height:0;overflow:hidden}
+.in>.pad{padding-bottom:4px}
+
+.carte{background:var(--carte);border-radius:12px;overflow:hidden}
+.ligne{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:7px 16px}
+.ligne+.ligne{border-top:1px solid var(--sep)}
+.ligne b{font-weight:400;font-size:16px;display:block}
+.ligne small{display:block;color:var(--gris);font-size:12px;margin-top:1px}
+.mod-ligne{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:13px;color:var(--texte)}
+.mod-ligne em{font-style:normal;color:var(--gris);font-size:12px}
+.mod-ligne button{margin-left:auto;opacity:0;transition:opacity .15s var(--sortie),background .15s var(--sortie);padding:3px 11px;font-size:12px;border-radius:999px;border:0;
+  background:var(--puce);color:var(--texte);font-family:inherit;cursor:default}
+.mod-ligne:hover button,.mod-ligne button:focus-visible{opacity:1}
+.mod-ligne button:hover{background:var(--puce-h)}.mod-ligne button:active{transform:scale(.96)}
+#threads button.bloque{opacity:.35;text-decoration:line-through}
+#mod-liste{min-width:260px}
+.mod-pt{width:9px;height:9px;border-radius:50%;background:#6b6b70;flex:none;transition:background .25s var(--sortie)}
+.mod-ligne.pret .mod-pt{background:var(--vert)}
+.mod-ligne.pret em{color:var(--vert)}
+.mod-ligne.chargement .mod-pt{background:var(--bleu);animation:mod-pulse 1s ease-in-out infinite}
+.mod-ligne.chargement em{color:var(--bleu)}
+@keyframes mod-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.55);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.mod-ligne.chargement .mod-pt{animation:none}}
+.note{color:var(--gris);font-size:12px;padding:8px 4px 2px}
+
+/* puces de langue */
+.puces{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px 16px}
+.puce{height:30px;padding:0 14px;border-radius:15px;background:var(--puce);display:flex;align-items:center;font-size:13px;
+  cursor:default;transition:background .18s var(--sortie),color .18s var(--sortie),transform .16s var(--sortie),opacity .2s var(--sortie)}
+.puce:hover{background:var(--puce-h)}
+.puce:active{transform:scale(.97)}
+.puce.on{background:var(--bleu);color:#fff;font-weight:600}
+.puce.off{opacity:.38;pointer-events:none}
+
+
+.puce.on.ultra{background:linear-gradient(135deg,#0c2142,#1a3f78);color:#dbe9ff;box-shadow:0 0 12px rgba(50,120,255,.35),inset 0 0 0 1px rgba(120,175,255,.35)}
+.auto-ultra{display:none;align-items:center;gap:12px;padding:14px 16px 16px;color:#9fc3ff;font-size:13px}
+.auto-ultra .pt{width:7px;height:7px;border-radius:50%;background:#5e9bff;box-shadow:0 0 10px #3c7dff}
+.auto-ultra .lien{margin-left:auto;height:26px;font-size:12px}
+.modeles{display:none;padding:4px 16px 14px;font-size:13px;color:var(--gris)}
+.modeles.ouvert{display:block}
+.modeles div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
+.modeles b{font-weight:600;color:var(--texte)}
+
+.anneau{position:relative;width:44px;height:44px;flex:none;margin-right:2px}
+.anneau svg{width:44px;height:44px;transform:rotate(-90deg);animation:tourne 3.2s linear infinite;filter:drop-shadow(0 0 5px rgba(70,130,255,.6))}
+.anneau circle{fill:none;stroke-width:3;stroke-linecap:round}
+.anneau .fond{stroke:#0e1a33}
+.anneau .arc{stroke:#6aa5ff;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .6s linear}
+.anneau span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#bcd6ff}
+@keyframes tourne{to{transform:rotate(270deg)}}
+
+/* choix du modele : cartes */
+.cartes-m{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 14px 4px}
+.cm{position:relative;display:flex;flex-direction:column;text-align:left;border:1px solid rgba(255,255,255,.07);background:#3a3a3e;border-radius:14px;
+  padding:13px 13px 12px;color:var(--texte);font:inherit;cursor:default;transition:background .2s var(--sortie),border-color .2s var(--sortie),transform .16s var(--sortie),box-shadow .2s var(--sortie)}
+.cm:hover{background:#414146}.cm:active{transform:scale(.97)}
+.cm:disabled{opacity:.4;pointer-events:none}
+.cm .nom{font-size:15px;font-weight:600}
+.cm .mod{font-size:11.5px;color:var(--gris);margin-top:1px}
+.cm .desc{font-size:12px;line-height:1.35;color:#b4b4b9;margin:9px 0 11px;min-height:48px}
+.cm .metr{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--gris);margin-top:6px}
+.cm .metr b{font-weight:600;color:var(--texte)}
+.pts{display:flex;gap:3px}.pts i{width:12px;height:4px;border-radius:2px;background:rgba(255,255,255,.14);transition:background .25s}.pts i.o{background:#d8d8dc}
+.cm .coche{position:absolute;top:12px;right:12px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;opacity:0;transform:scale(.85);transition:opacity .2s var(--sortie),transform .22s var(--sortie)}
+.cm .coche svg{width:11px;height:11px;stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cm.on{background:#55555b;border-color:rgba(255,255,255,.28);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.cm.on .coche{opacity:1;transform:scale(1)}
+.cm .badge{font-style:normal;align-self:flex-start;margin-top:10px;font-size:10.5px;font-weight:600;letter-spacing:.2px;padding:2px 8px;border-radius:9px;background:rgba(255,255,255,.1);color:#cfcfd4}
+.cm.ultra{background:linear-gradient(160deg,#18243c,#101a2e)}
+.cm.ultra:hover{background:linear-gradient(160deg,#1c2b49,#132038)}
+.cm.ultra .pts i.o{background:#8fbaff}
+.cm.ultra .badge{background:rgba(70,130,255,.18);color:#9fc3ff}
+.cm.ultra.on{background:linear-gradient(160deg,#0d2347,#14305c);border-color:rgba(120,175,255,.55);box-shadow:0 0 18px rgba(50,120,255,.35),inset 0 0 14px rgba(80,150,255,.12)}
+.cm.ultra.on .coche{background:rgba(110,170,255,.35)}
+.cm .badge.cache{display:none}
+.carte.toujours{margin-top:10px;background:transparent;border:1px dashed rgba(255,255,255,.12)}
+.tj-titre{padding:12px 16px 2px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--gris)}
+.tj{flex:none;font-size:11.5px;font-weight:600;color:#cfcfd4;background:rgba(255,255,255,.08);padding:3px 10px;border-radius:9px}
+@media(max-width:620px){.cartes-m{grid-template-columns:1fr}.cm .desc{min-height:0}}
+
+/* position de la carte de reponse */
+.pos-bloc{display:flex;gap:18px;align-items:center;padding:14px 16px}
+.pos-ecran{position:relative;flex:none;width:200px;aspect-ratio:16/10;border-radius:10px;background:linear-gradient(160deg,#1d1d20,#111113);
+  border:1px solid rgba(255,255,255,.1);overflow:hidden;touch-action:none}
+.pos-pilule{position:absolute;width:26%;height:10%;border-radius:10px;background:#050506;border:1px solid rgba(255,255,255,.35);
+  box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:grab;transition:box-shadow .2s}
+.pos-pilule.glisse{cursor:grabbing;box-shadow:0 8px 22px rgba(0,0,0,.7)}
+.pos-cote{flex:1;min-width:0}.pos-cote b{font-weight:400;font-size:16px;display:block}.pos-cote small{display:block;color:var(--gris);font-size:12px;margin:2px 0 12px}
+.pos-cote .touche{flex-wrap:wrap;gap:8px}
+
+/* univers : chaque mode a son logo et son ambiance */
+html,body{transition:background-color .3s var(--sortie)}
+.carte{transition:background-color .3s var(--sortie)}
+body.m-dictee{background-image:radial-gradient(820px 260px at 50% -90px,rgba(255,255,255,.07),transparent)}
+body.m-assistant{--fond:#050507;--carte:#101016;--sep:rgba(255,255,255,.06);--puce:#1b1b24;--puce-h:#252531;--piste:#09090d;--bleu:#8c94ff;--gris:#8b8b99;
+  background-image:radial-gradient(820px 280px at 50% -90px,rgba(118,128,255,.22),transparent)}
+body.m-assistant html,html:has(body.m-assistant){--fond:#050507;background:#050507}
+html:has(body.m-dictee){background:#1e1e20}
+body.m-assistant .corps::-webkit-scrollbar-thumb{background:#2c2c38;border-color:#050507}
+body.m-assistant .bascule{background:#2a2a34}
+body.m-assistant .bascule.on{background:#7b84ff}
+body.m-assistant .btn.bleu{background:rgba(140,148,255,.16);color:#a9afff}
+body.m-assistant .puce.on{background:#6f78ff;color:#fff}
+.univers{position:relative;display:flex;gap:0;margin:0 0 18px;padding:4px;border-radius:18px;background:var(--piste);transition:background-color .3s var(--sortie)}
+.univers button{position:relative;z-index:1;flex:1;display:flex;align-items:center;gap:12px;border:0;background:none;color:var(--gris);font:inherit;
+  padding:10px 14px;border-radius:14px;cursor:default;text-align:left;transition:color .2s var(--sortie)}
+.univers button img{width:42px;height:42px;border-radius:10px;opacity:.55;transform:scale(.94);transition:opacity .25s var(--sortie),transform .3s var(--sortie)}
+.univers button b{display:block;font-size:16px;font-weight:650;letter-spacing:-.2px}
+.univers button small{display:block;font-size:12px;margin-top:1px;opacity:.8}
+.univers button.on{color:var(--texte)}
+.univers button.on img{opacity:1;transform:scale(1)}
+.univers .u-pouce{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:14px;background:#38383d;
+  box-shadow:0 2px 10px rgba(0,0,0,.35);transition:transform .3s var(--ressort),background-color .3s var(--sortie)}
+.univers.p1 .u-pouce{transform:translateX(100%);background:linear-gradient(135deg,#171726,#20204a);box-shadow:0 0 22px rgba(118,128,255,.28),inset 0 0 0 1px rgba(140,148,255,.28)}
+.corps.change{animation:univers .25s var(--sortie)}
+@keyframes univers{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* confirmation */
+#toast{position:fixed;left:50%;bottom:24px;z-index:50;display:flex;align-items:center;gap:8px;padding:9px 16px 9px 12px;border-radius:20px;
+  background:rgba(58,58,64,.96);color:#fff;font-size:13px;font-weight:500;box-shadow:0 8px 26px rgba(0,0,0,.45);opacity:0;pointer-events:none;
+  transform:translate(-50%,12px) scale(.97);transition:opacity .15s var(--sortie),transform .18s var(--sortie)}
+#toast.vu{opacity:1;transform:translate(-50%,0) scale(1);transition:opacity .2s var(--sortie),transform .28s var(--sortie)}
+#toast i{width:18px;height:18px;border-radius:50%;background:var(--vert);display:grid;place-items:center;flex:none}
+#toast i svg{width:11px;height:11px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#toast.err i{background:var(--rouge)}
+body.m-assistant #toast{background:rgba(32,32,44,.96)}
+
+/* reglages verrouilles pendant l'enregistrement */
+.occ{display:none;margin:0 0 14px;padding:10px 14px;border-radius:12px;background:rgba(255,69,58,.12);color:#ff8a80;font-size:13px}
+body.occupe .occ{display:block}
+body.occupe :is(.bascule,.cm,#langues .puce,#parlees .puce,#changer,.pos-bloc,.touche .lien,#maj-btn,#ln-direct,#ln-net,.nav-v){pointer-events:none;opacity:.45}
+
+/* mises a jour */
+#maj-etat.ok{color:#5fdc83}#maj-etat.ko{color:#ff8a80}
+#maj-btn.attend{opacity:.6}
+
+/* memoire */
+#mem{max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#4a4a4f transparent}
+#mem.tout{max-height:none}
+.mem span{white-space:normal;overflow:visible;line-height:1.4}
+.mem span[contenteditable="true"]{outline:0;background:var(--puce);border-radius:7px;padding:3px 8px;margin:-3px -8px;-webkit-user-select:text;user-select:text}
+.mem .ed{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--gris);opacity:0;transition:opacity .2s,background .2s}
+.mem:hover .ed{opacity:1}.mem .ed:hover{background:var(--puce);color:#fff}
+.ajout{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--sep)}
+.ajout input{flex:1;border:0;outline:0;background:var(--puce);color:var(--texte);font:inherit;font-size:14px;padding:7px 12px;border-radius:9px;-webkit-user-select:text;user-select:text}
+pre.defaut{margin:0;padding:12px 16px;white-space:pre-wrap;font:12px/1.5 "Cascadia Mono",Consolas,monospace;color:#b4b4c0;max-height:260px;overflow-y:auto;-webkit-user-select:text;user-select:text}
+/* bascule iOS */
+.bascule{flex:none;width:51px;height:31px;border-radius:16px;background:#48484d;position:relative;cursor:default;
+  transition:background .22s var(--sortie)}
+.bascule::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .25s var(--ressort),width .18s var(--sortie)}
+.bascule:active::after{width:32px}
+.bascule.on{background:var(--vert)}
+.bascule.on::after{transform:translateX(20px)}
+.bascule.on:active::after{transform:translateX(15px)}
+
+/* controle segmente */
+.seg{flex:none;position:relative;display:flex;background:var(--piste);border-radius:9px;padding:2px}
+.seg button{position:relative;z-index:1;border:0;background:none;color:var(--gris);font:inherit;font-size:12.5px;font-weight:600;
+  padding:6px 18px;border-radius:7px;cursor:default;transition:color .25s}
+.seg button.on{color:#fff}
+.seg button:disabled{opacity:.4}
+.seg.verrou{opacity:.55}
+.seg .pouce{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);border-radius:7px;background:#6e6e72;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .26s var(--ressort)}
+.seg.p1 .pouce{transform:translateX(100%)}
+.seg3 .pouce{width:calc(33.333% - 1.4px)}.seg3.p1 .pouce{transform:translateX(100%)}.seg3.p2 .pouce{transform:translateX(200%)}
+.seg3 button{padding:6px 14px}
+
+/* boutons */
+.touche{display:flex;align-items:center;gap:10px}
+.kbd{min-width:38px;text-align:center;height:26px;line-height:26px;border-radius:7px;background:var(--puce);font-size:13px;font-weight:600;padding:0 10px}
+.btn{height:28px;padding:0 14px;border:0;border-radius:14px;font:inherit;font-size:13px;font-weight:600;cursor:default;
+  transition:background .18s var(--sortie),transform .16s var(--sortie),color .18s var(--sortie)}
+.btn.bleu{background:rgba(10,132,255,.18);color:var(--bleu)}
+.btn.bleu:hover{background:rgba(10,132,255,.28)}
+.btn.bleu.attend{background:var(--bleu);color:#fff}
+.btn:active{transform:scale(.97)}
+.btn.rouge{height:36px;padding:0 22px;border-radius:18px;font-size:14px;background:rgba(255,69,58,.14);color:var(--rouge)}
+.btn.rouge:hover{background:rgba(255,69,58,.24)}
+
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pied{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:0 4px;color:var(--gris);font-size:12px}
+.inactif{opacity:.4;transition:opacity .3s;pointer-events:none}
+.nav{display:none;flex-wrap:wrap;gap:8px;margin:0 0 16px}body.m-assistant .nav{display:flex}.nav .puce{cursor:pointer}
+.btn.petit{height:30px;padding:0 16px;font-size:13px;flex:none}
+.barre{height:6px;border-radius:3px;background:var(--piste);overflow:hidden;margin-top:8px}
+.barre i{display:block;height:100%;width:100%;background:var(--bleu);border-radius:3px;transform:scaleX(0);transform-origin:left;transition:transform .6s linear}
+.lien{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 14px;border:0;border-radius:15px;background:var(--puce);
+  color:var(--texte);font:inherit;font-size:13px;font-weight:600;cursor:default;transition:background .18s var(--sortie),transform .16s var(--sortie)}
+.lien:hover{background:var(--puce-h)}.lien:active{transform:scale(.97)}
+.lien svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.entete .lien{margin-left:auto}
+body.m-dictee .a-only{display:none}
+body.m-assistant [data-s="reco"],body.m-assistant [data-s="parlees"],body.m-assistant .grille{display:none}
+textarea.zone{width:100%;min-height:96px;resize:none;border:0;outline:0;background:transparent;color:var(--texte);font:inherit;font-size:14px;
+  line-height:1.45;padding:14px 16px;-webkit-user-select:text;user-select:text}
+textarea.zone::placeholder{color:#6c6c70}
+.mem{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:14px}
+.mem+.mem{border-top:1px solid var(--sep)}
+.mem span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem i{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--gris);cursor:default;transition:background .2s,color .2s}
+.mem i:hover{background:var(--puce);color:#fff}
+.vide{padding:16px;color:var(--gris);font-size:13px}
+.lien.fin{height:26px;font-size:12px;padding:0 12px}
+.mode-a{display:none}body.m-assistant .mode-a{display:block}
+.m-assistant .titre{cursor:default}.m-assistant .titre svg{display:none}
+.m-assistant .section .plie{grid-template-rows:1fr!important;opacity:1!important}
+
+/* mise en page aeree : les reglages sont poses sur le fond, sans boites, une seule colonne */
+.corps{padding:0 max(28px,calc((100% - 660px) / 2)) 40px}
+.univers{margin-bottom:34px}
+.section{margin-bottom:40px}
+.titre{padding:0 0 8px;color:var(--texte);font-size:19px;font-weight:600;letter-spacing:-.25px;text-transform:none}
+.titre:hover{color:var(--texte)}
+.titre svg{color:var(--gris);width:11px;height:11px}
+.carte{background:transparent;border-radius:0;overflow:visible}
+.ligne{min-height:60px;padding:16px 0;gap:28px}
+.ligne+.ligne{border-top:1px solid var(--sep)}
+.ligne b{font-size:15px}
+.ligne small{font-size:12.5px;line-height:1.45;margin-top:3px;max-width:52ch}
+.ligne.pile{flex-direction:column;align-items:flex-start;gap:10px}   /* le texte d'abord, les boutons dessous : rien n'est ecrase */
+.grille{display:block}
+.cartes-m{padding:6px 0 14px;gap:12px}
+.puces{padding:12px 0 6px}
+.auto-ultra{padding:12px 0 6px}
+.note{padding:12px 0 0;line-height:1.5}
+.ajout{padding:16px 0 0;border-top:0}
+.pos-bloc{padding:20px 0;gap:24px}
+.mem{padding:13px 0}
+.vide{padding:14px 0}
+textarea.zone{background:var(--carte);border-radius:14px}
+pre.defaut{background:var(--carte);border-radius:12px;margin-top:4px}
+.carte[style*="margin-top:10px"]{margin-top:22px!important}
+#imp{background:var(--carte)!important;border-radius:14px!important;padding:18px!important}
+.nav{margin-bottom:30px}
+.carte.toujours{border:0;margin-top:26px}
+.tj-titre{padding:0 0 4px;font-size:13px;font-weight:500;letter-spacing:0;text-transform:none}
+.pied{margin-top:8px;padding:24px 0 0;border-top:1px solid var(--sep)}
+
+/* choix a trois positions (reflexion de l'assistant) */
+.choix{flex:none;display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--piste)}
+.choix button{border:0;background:transparent;color:var(--gris);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:default;
+  transition:background .16s var(--sortie),color .16s var(--sortie)}
+.choix button.on{background:var(--puce-h);color:var(--texte)}
+.choix button:focus-visible{outline:2px solid var(--bleu);outline-offset:1px}
+body.occupe .choix{pointer-events:none;opacity:.45}
+
+/* « Your words » : des etiquettes au lieu d'une liste a virgules */
+.ligne.mots{display:block}
+.etiquettes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding:9px;border-radius:14px;background:var(--carte);cursor:text;
+  transition:box-shadow .2s}
+.etiquettes:focus-within{box-shadow:0 0 0 2px rgba(10,132,255,.45)}
+.etiquette{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 5px 0 12px;border-radius:15px;background:var(--puce);font-size:13.5px}
+.etiquette.neuf{animation:pose .2s var(--sortie)}
+@keyframes pose{from{transform:scale(.92);opacity:0}}
+.etiquette button{width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:var(--gris);display:grid;place-items:center;cursor:default;
+  transition:background .2s,color .2s}
+.etiquette button:hover,.etiquette button:focus-visible{background:rgba(255,255,255,.14);color:#fff;outline:0}
+.etiquettes input{flex:1;min-width:190px;height:30px;border:0;outline:0;background:transparent;color:var(--texte);font:inherit;font-size:13.5px;padding:0 6px;
+  -webkit-user-select:text;user-select:text}
+.etiquettes input::placeholder{color:#6c6c70}
+/* 1. maintenir pour effacer : le rouge remplit le bouton en 2 s ; relache, il repart vite */
+.btn.maintenir{position:relative;overflow:hidden;touch-action:none}
+.btn.maintenir .txt{position:relative;z-index:1}
+.btn.maintenir .remplir{position:absolute;inset:0;background:rgba(255,69,58,.42);clip-path:inset(0 100% 0 0);
+  transition:clip-path .2s var(--sortie)}
+.btn.maintenir.tenu .remplir{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
+.btn.maintenir:focus-visible{outline:2px solid rgba(255,69,58,.6);outline-offset:2px}
+
+/* 2. les lignes qui apparaissent (mise a jour, telechargements, fichiers modifies) arrivent en douceur ; elles partent net */
+#maj-dispo,#maj-repar,#maj-redem,#ultra-prog,#ag-prog,#vis-prog,#ag-suppr{transition:opacity .2s var(--sortie),transform .2s var(--sortie)}
+@starting-style{#maj-dispo,#maj-repar,#maj-redem,#ultra-prog,#ag-prog,#vis-prog,#ag-suppr{opacity:0;transform:translateY(4px)}}
+
+/* 3. ouvrir / fermer : instructions integrees et import depuis une autre IA */
+.depli{display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;
+  transition:grid-template-rows .28s var(--ressort),opacity .2s var(--sortie),visibility 0s .28s}
+.depli.ouvert{grid-template-rows:1fr;opacity:1;visibility:visible;transition:grid-template-rows .28s var(--ressort),opacity .2s var(--sortie)}
+.depli>.in{min-height:0;overflow:hidden}
+
+/* 4. fin du telechargement d'Ultra : l'anneau complet s'efface, le badge arrive */
+#ultra-prog.termine{opacity:0;transition:opacity .3s var(--sortie) .45s}
+.cm .badge.nouveau{animation:installe .25s var(--sortie)}
+@keyframes installe{from{opacity:0;transform:scale(.95)}}
+
+/* 5. memoire : seule la ligne ajoutee entre */
+.mem.entre{animation:entre-ligne .2s var(--sortie)}
+@keyframes entre-ligne{from{opacity:0;transform:translateY(4px)}}
+.mem.sort{overflow:hidden;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  @starting-style{#maj-dispo,#maj-repar,#maj-redem,#ultra-prog,#ag-prog,#vis-prog,#ag-suppr{transform:none}}
+  .depli,.depli.ouvert{transition:opacity .2s linear,visibility 0s}
+  .cm .badge.nouveau,.mem.entre{animation:fondu .2s linear}
+  body{animation:fondu .2s linear both}
+  body.sortie{animation:fondu-sortie .12s linear forwards}
+  .corps.change{animation:fondu .2s linear}
+  .etiquette,.anneau svg{animation:none}
+  .bascule::after,.seg .pouce,.univers .u-pouce,.univers button img,#toast,#toast.vu,.titre svg,.cm,.cm .coche,.puce,.btn,.lien,.lumieres i,.barre i{
+    transition-property:opacity,background-color,color,border-color,box-shadow}
+  .plie{transition:opacity .2s linear}
+}
+@keyframes fondu{from{opacity:0}}
+@keyframes fondu-sortie{to{opacity:0}}
+</style>
+</head>
+<body>
+<div id="toast"><i><svg viewBox="0 0 12 12"><path d="M2.5 6.5l2.4 2.4L9.5 3.6"/></svg></i><span id="toast-t"></span></div>
+<div class="haut">
+  <div class="lumieres">
+    <i id="rouge" title="Close"><svg viewBox="0 0 8 8"><path d="M1 1l6 6M7 1L1 7"/></svg></i>
+    <i id="jaune" title="Collapse all"><svg viewBox="0 0 8 8"><path d="M1 4h6"/></svg></i>
+    <i id="vert" title="Expand all"><svg viewBox="0 0 8 8"><path d="M1 4h6M4 1v6"/></svg></i>
+  </div>
+  <div class="drag pywebview-drag-region"></div>
+</div>
+
+<div class="corps">
+  <div class="univers" id="univers"><div class="u-pouce"></div>
+    <button data-u="dictee"><img src="logo.png" alt="" id="img-d"><span><b>Dictation</b><small>Your voice, written</small></span></button>
+    <button data-u="assistant"><img src="agent.png" alt="" id="img-a"><span><b>Assistant</b><small>Ask out loud</small></span></button>
+  </div>
+  <div class="occ" id="occ">Hear is recording or transcribing. Settings are locked until it finishes.</div>
+
+  <div class="section" data-s="reco">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Voice recognition</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte">
+        <div class="cartes-m" id="seg">
+          <button class="cm" data-m="parakeet">
+            <span class="coche"><svg viewBox="0 0 12 12"><path d="M2.5 6.5l2.4 2.4L9.5 3.6"/></svg></span>
+            <span class="nom">Fast</span><span class="mod">Parakeet v3</span>
+            <span class="desc">Fast mode. Instant results for everyday dictation.</span>
+            <span class="metr">Speed<span class="pts" data-n="5"></span></span>
+            <span class="metr">Accuracy<span class="pts" data-n="3"></span></span>
+            <span class="metr">Languages<b>25</b></span>
+          </button>
+          <button class="cm" data-m="canary">
+            <span class="coche"><svg viewBox="0 0 12 12"><path d="M2.5 6.5l2.4 2.4L9.5 3.6"/></svg></span>
+            <span class="nom">Precise</span><span class="mod">Canary 1B v2</span>
+            <span class="desc">Default. Balanced between speed and accuracy. Pick your language for the best result.</span>
+            <span class="metr">Speed<span class="pts" data-n="3"></span></span>
+            <span class="metr">Accuracy<span class="pts" data-n="4"></span></span>
+            <span class="metr">Languages<b>25</b></span>
+            <em class="badge" id="bd-precise">Default</em>
+          </button>
+          <button class="cm ultra" data-m="ultra" id="b-ultra">
+            <span class="coche"><svg viewBox="0 0 12 12"><path d="M2.5 6.5l2.4 2.4L9.5 3.6"/></svg></span>
+            <span class="nom">Ultra</span><span class="mod">Qwen3-ASR 1.7B</span>
+            <span class="desc">The best model. Highest accuracy, and the text appears as you go. Finds the language by itself.</span>
+            <span class="metr">Speed<span class="pts" data-n="5"></span></span>
+            <span class="metr">Accuracy<span class="pts" data-n="5"></span></span>
+            <span class="metr">Languages<b>16</b></span>
+            <em class="badge" id="bd-ultra">2.5 GB</em>
+          </button>
+        </div>
+        <div class="ligne" id="ultra-prog" style="display:none"><div class="anneau"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="18"/><circle class="arc" id="ultra-arc" cx="22" cy="22" r="18" pathLength="100"/></svg><span id="ultra-pct">0%</span></div><div style="flex:1"><b style="font-size:14px">Downloading Ultra</b><small>About 2.5 GB. Hear keeps working meanwhile</small></div><button class="btn rouge petit" id="ultra-stop">Stop</button></div>
+        <div class="ligne" id="precise-prog" style="display:none"><div class="anneau"><svg viewBox="0 0 44 44"><circle class="fond" cx="22" cy="22" r="18"/><circle class="arc" id="precise-arc" cx="22" cy="22" r="18" pathLength="100"/></svg><span id="precise-pct">0%</span></div><div style="flex:1"><b style="font-size:14px">Downloading Precise</b><small>About 1 GB. Hear keeps working meanwhile</small></div><button class="btn rouge petit" id="precise-stop">Stop</button></div>
+        <div class="auto-ultra" id="auto-ultra"><span class="pt"></span><span>Detects the language automatically</span></div>
+        <div class="puces" id="langues"></div>
+      </div>
+      <div class="note" id="note-reco"></div>
+    </div></div></div>
+  </div>
+
+  <div class="section" data-s="parlees">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Languages I speak</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte" id="carte-parlees"><div class="puces" id="parlees"></div></div>
+      <div class="note">Auto only chooses between these languages, and ignores all others. None selected = any language.</div>
+    </div></div></div>
+  </div>
+
+  <div class="nav a-only" id="nav">
+    <div class="puce" data-to="assistant">Assistant</div><div class="puce" data-to="pastille">Pill</div><div class="puce" data-to="perf">Abilities</div>
+    <div class="puce" data-to="prompt">Instructions</div><div class="puce" data-to="memoire">Memory</div><div class="puce" data-to="historique">History</div>
+  </div>
+
+  <div class="section a-only" data-s="assistant">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Assistant</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte">
+        <div class="ligne"><div><b>Voice assistant</b><small id="ag-sub"></small></div><div class="bascule" data-k="agent_actif"></div></div>
+        <div class="ligne"><div><b>Dictation</b><small>F9 writes what you say. Turn off to use Hear only as an assistant</small></div><div class="bascule" data-k="dictee_actif"></div></div>
+        <div class="ligne" id="ag-prog" style="display:none"><div style="flex:1"><small id="ag-txt"></small><div class="barre"><i id="ag-barre"></i></div></div><button class="btn rouge petit" id="ag-stop">Stop</button></div>
+        <div class="ligne"><b>Assistant key</b><div class="touche"><span class="kbd" id="kbd-a">F10</span></div></div>
+        <div class="ligne"><div><b>Listen right away</b><small>F10 starts the microphone instead of the text box</small></div><div class="bascule" data-k="agent_voix_auto"></div></div>
+        <div class="ligne"><div><b>Use selected text</b><small>Select text, press F10, say what to do. The result is copied</small></div><div class="bascule" data-k="agent_selection"></div></div>
+        <div class="ligne"><div><b>Conversation</b><small>Forget what was said so far. Long-term memory stays</small></div><button class="btn rouge petit" id="conv-vider">Clear</button></div>
+      </div>
+      <div class="note" id="ag-note"></div>
+    </div></div></div>
+  </div>
+
+  <div class="section a-only" data-s="pastille">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Pill and answers</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte">
+        <div class="ligne"><div><b>Always-visible pill</b><small>Sleeps at the bottom of the screen. F10 wakes it</small></div><div class="bascule" data-k="agent_compagnon"></div></div>
+        <div class="ligne"><div><b>Show what it's doing</b><small>Thinking, searching, opening… shown in the pill</small></div><div class="bascule" data-k="agent_statut"></div></div>
+        <div class="ligne"><div><b>Details bubble</b><small>Its reasoning and searches, in a second bubble</small></div><div class="bascule" data-k="agent_details"></div></div>
+        <div class="pos-bloc"><div class="pos-ecran" id="pos-ecran"><div class="pos-pilule" id="pos-pilule"></div></div>
+          <div class="pos-cote"><b>Pill position</b><small>Drag the pill where you want it on your screen. Saved automatically. Answers open next to it.</small>
+            <div class="touche"><button class="lien fin" data-pp="0.07">Top</button><button class="lien fin" data-pp="0.5">Center</button><button class="lien fin" data-pp="0.91">Bottom</button><button class="lien fin" id="pos-reset">Reset</button></div></div></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <div class="section a-only" data-s="perf">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Abilities</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte">
+        <div class="ligne"><div><b>Search your files</b><small>Find, open and read files in Documents, Desktop, Downloads</small></div><div class="bascule" data-k="agent_pc"></div></div>
+        <div class="ligne"><div><b>Search on Chrome</b><small>"Search on Chrome" opens the results page</small></div><div class="bascule" data-k="agent_chrome"></div></div>
+        <div class="ligne"><div><b>Always ask before acting</b><small>Asks "yes or no?" before opening anything or going online. When off, it asks only after reading a web page, a file or your screen</small></div><div class="bascule" data-k="agent_confirmer"></div></div>
+        <div class="ligne"><div><b>Thinking</b><small id="refl-sub">It decides by itself when a question needs reasoning</small></div>
+          <div class="choix" id="reflexion" role="radiogroup" aria-label="Thinking"><button data-v="off" role="radio">Off</button><button data-v="auto" role="radio">Auto</button><button data-v="on" role="radio">On</button></div></div>
+        <div class="ligne"><div><b>See web pages and your screen</b><small id="vis-sub">Reads screenshots of sites and of your screen when you ask (uses 670 MB)</small></div><div class="bascule" data-k="agent_vision"></div></div>
+        <div class="ligne" id="vis-prog" style="display:none"><div style="flex:1"><small>Downloading the vision module</small><div class="barre"><i id="vis-barre"></i></div></div><button class="btn rouge petit" id="vis-stop">Stop</button></div>
+        <div class="ligne" id="ag-suppr" style="display:none"><div><b>AI model files</b><small id="ag-taille"></small></div><button class="btn rouge petit maintenir" id="ag-del"><span class="remplir"></span><span class="txt">Hold to delete</span></button></div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <div class="section a-only" data-s="prompt">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Your instructions</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte"><textarea class="zone" id="prompt" maxlength="2000" placeholder="Anything you want it to always do. For example: Answer in French, short and direct. Call me Liam."></textarea></div>
+      <div class="carte" style="margin-top:10px"><div class="ligne" id="defaut-b" style="cursor:default"><div><b>Hear's built-in instructions</b><small>What the assistant always follows. Read only</small></div><button class="lien fin" id="defaut-bt">Show</button></div><div class="depli" id="defaut-z"><div class="in"><pre class="defaut" id="defaut"></pre></div></div></div>
+      <div class="note">Added to the assistant's rules. It never overrides safety rules. <span id="prompt-n"></span></div>
+    </div></div></div>
+  </div>
+
+  <div class="section a-only" data-s="memoire">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Memory</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte"><div id="mem"></div><div class="ajout"><input id="mem-new" maxlength="200" placeholder="Add something to remember"><button class="btn bleu petit" id="mem-add">Add</button></div></div>
+      <div class="note"><span id="mem-note"></span> <button class="lien" id="mem-imp-b">Import from another AI</button> <button class="lien fin" id="mem-vider" style="display:none">Clear all</button> <button class="lien fin" id="mem-tout" style="display:none">Show all</button></div>
+      <div class="depli" id="imp-z"><div class="in"><div class="carte" id="imp" style="padding:14px;margin-top:10px">
+        <small>1. Copy this prompt and send it to the AI you use most (ChatGPT, Claude, Gemini).</small>
+        <div style="margin:8px 0"><button class="btn bleu petit" id="imp-copy">Copy the prompt</button> <span id="imp-copie" class="note"></span></div>
+        <small>2. Paste its answer here, then import.</small>
+        <textarea class="zone" id="imp-txt" style="margin-top:8px" placeholder="Paste the export here"></textarea>
+        <div style="margin-top:8px"><button class="btn bleu petit" id="imp-go">Import</button> <span id="imp-res" class="note"></span></div>
+      </div></div></div>
+    </div></div></div>
+  </div>
+
+  <div class="section a-only" data-s="historique">
+    <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>History</div>
+    <div class="plie"><div class="in"><div class="pad">
+      <div class="carte" id="hist"></div>
+      <div class="note"><span id="hist-note">What the assistant did, stored only on this PC. Entries older than 30 days are deleted automatically.</span> <button class="lien fin" id="hist-vider" style="display:none">Clear</button></div>
+      <div class="carte" style="margin-top:10px"><div class="ligne"><div><b>All my data</b><small>Erase memory, history, to-do list, conversation, logs and recordings. Settings are kept</small></div><button class="btn rouge petit maintenir" id="tout-vider"><span class="remplir"></span><span class="txt">Hold to erase</span></button></div></div>
+    </div></div></div>
+  </div>
+
+  <div class="grille">
+    <div class="section" data-s="dictee">
+      <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Dictation</div>
+      <div class="plie"><div class="in"><div class="pad"><div class="carte">
+        <div class="ligne"><b>Dictation key</b><div class="touche"><span class="kbd" id="kbd">F9</span><button class="btn bleu" id="changer">Change</button></div></div>
+        <div class="ligne mots"><b>Your words</b><small>Names and English words you often say. Ultra writes them correctly.</small>
+          <div class="etiquettes" id="mots"><input id="mot-new" maxlength="60" placeholder="Add a word, then press Enter" aria-label="Add a word"></div></div>
+      </div></div></div></div>
+    </div>
+    <div class="section" data-s="audio">
+      <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Audio</div>
+      <div class="plie"><div class="in"><div class="pad"><div class="carte">
+        <div class="ligne"><div><b>Clean audio</b><small>Trims silence and evens out your voice</small></div><div class="bascule" data-k="clean_audio"></div></div>
+        <div class="ligne"><div><b>Reduce noise</b><small>Helps with constant background hiss</small></div><div class="bascule" data-k="reduce_noise"></div></div>
+      </div></div></div></div>
+    </div>
+    <div class="section" data-s="ecriture">
+      <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>Writing</div>
+      <div class="plie"><div class="in"><div class="pad"><div class="carte">
+        <div class="ligne" id="ln-direct"><div><b>Write as it transcribes</b><small id="direct-sub">The text appears in the app sentence by sentence, as soon as it's ready. Ultra only</small></div><div class="bascule" data-k="ecrire_direct"></div></div>
+        <div class="ligne" id="ln-net"><div><b>Clean up the text</b><small id="net-sub">The assistant fixes punctuation and filler words. A bit slower</small></div><div class="bascule" data-k="dictee_nettoyer"></div></div>
+        <div class="ligne"><div><b>Voice commands</b><small>Powered by SPOT, a tiny AI model made for Hear (6.5 MB, beta: French and English only for now). Say “comma”, “period”, “new line”, “open quote”, “at”, “dot”… (or “virgule”, “point”, “à la ligne”, “arobase”…) and get the symbol: “write me at marie dot durand at gmail dot com” gives marie.durand@gmail.com. French and English. A word that is just a word (“at this point”, “le point de vue”) stays a word</small></div><div class="bascule" data-k="commandes"></div></div>
+        <div class="ligne"><div><b>Numbers as digits</b><small>Say “twenty-three” or “vingt-trois”, get 23. A lone “one” or “un” stays a word</small></div><div class="bascule" data-k="chiffres"></div></div>
+        <div class="ligne"><div><b>Transcribe as you speak</b><small>At each pause, what you already said is transcribed in the background. Only worth it for very long dictations (a minute or more). Off by default</small></div><div class="bascule" data-k="dictee_pre"></div></div>
+      </div>
+      <div class="carte toujours"><div class="tj-titre">Always on, nothing to set</div>
+        <div class="ligne"><div><b>Space after text</b><small>A space is added after each dictation, so the next one never sticks to the last word</small></div><span class="tj">On</span></div>
+      </div></div></div></div>
+    </div>
+    <div class="section" data-s="modeles">
+      <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>AI models in memory</div>
+      <div class="plie"><div class="in"><div class="pad"><div class="carte">
+        <div class="ligne"><div><b>In memory now</b><small id="mod-etat">Nothing loaded. The models load when you press a key</small><div id="mod-liste"></div><small>Hear never keeps more than two AI models in memory: one for dictation, and the assistant</small></div><button class="btn bleu petit" id="mod-decharger">Unload now</button></div>
+        <div class="ligne pile"><div><b>Free memory when idle</b><small id="decharge-sub">Unloads the AI models after 30 min without use. A key press loads them back, which takes a few seconds</small></div>
+          <div class="choix" id="decharge" role="radiogroup" aria-label="Free memory when idle"><button data-v="10" role="radio">10 min</button><button data-v="30" role="radio">30 min</button><button data-v="60" role="radio">1 h</button><button data-v="0" role="radio">Never</button></div></div>
+        <div class="ligne pile"><div><b>CPU threads</b><small id="threads-sub">Hear picks the number of processor threads for the AI models</small></div>
+          <div class="choix" id="threads" role="radiogroup" aria-label="CPU threads"><button data-v="leger" role="radio">Light</button><button data-v="auto" role="radio">Auto</button><button data-v="max" role="radio">Max</button></div></div>
+        <div class="ligne" id="ln-alterne"><div><b>One AI at a time on the graphics card</b><small id="alterne-sub">For cards with 4 to 6 GB. When the assistant answers, Ultra dictation unloads. After 3 min without the assistant, it unloads and dictation comes back</small></div><div class="bascule" data-k="memoire_alternee"></div></div>
+      </div></div></div></div>
+    </div>
+    <div class="section" data-s="systeme">
+      <div class="titre"><svg viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>System</div>
+      <div class="plie"><div class="in"><div class="pad"><div class="carte">
+        <div class="ligne" id="ln-autostart"><b>Start with Windows</b><div class="bascule" data-k="autostart"></div></div>
+        <div class="ligne"><div><b>Visual search</b><small>Win+Shift+D: draw a box on your screen and search it with Google Lens</small></div><div class="bascule" data-k="lens_actif"></div></div>
+        <div class="ligne"><div><b>Storage</b><small id="donnees-t">Hear's files and AI models</small></div><button class="btn bleu petit" id="donnees-btn">Change…</button></div>
+        <div class="ligne" id="donnees-conf" style="display:none"><div><b>Move Hear's files?</b><small id="donnees-cible"></small></div><button class="btn bleu petit" id="donnees-ok">Move</button></div>
+        <div class="ligne" id="ln-maj"><div><b>Updates</b><small id="maj-etat">Version</small></div><button class="btn bleu petit" id="maj-btn">Check now</button></div>
+        <div class="ligne" id="maj-dispo" style="display:none"><div><b id="maj-dispo-titre">Update available</b><small id="maj-dispo-t"></small></div><button class="btn bleu petit" id="maj-dl">Download now</button></div>
+        <div class="ligne" id="maj-repar" style="display:none"><div><b>Modified files</b><small>Put back the files of the installed version. Hear will restart</small></div><button class="btn rouge petit" id="maj-repar-btn">Repair</button></div>
+        <div class="ligne" id="maj-redem" style="display:none"><div><b>Restart needed</b><small id="maj-redem-t"></small></div><button class="btn bleu petit" id="maj-redem-btn">Restart</button></div>
+        <div class="ligne" id="ln-majauto"><div><b>Check for updates</b><small id="version">Every 10 minutes. Nothing is installed without your OK</small></div><div class="bascule" data-k="maj_auto"></div></div>
+        <div class="ligne" id="ln-majdev"><div><b>Development versions</b><small>Also offer unfinished test versions, not only final releases</small></div><div class="bascule" data-k="maj_dev"></div></div>
+        <div class="ligne"><div><b>Website</b><small>hear.devliam.com</small></div><button class="btn bleu petit" id="site-btn">Open</button></div>
+      </div></div></div></div>
+    </div>
+  </div>
+
+  <div class="pied"><span id="aide"></span><button class="btn rouge" id="quitter">Quit Settings</button></div>
+</div>
+
+<script>
+const SECTIONS = ["reco","parlees","assistant","pastille","perf","prompt","memoire","historique","dictee","audio","ecriture","modeles","systeme"];
+const PROMPT_IMPORT = `Export all of my stored memories and any context you\u2019ve learned about me from past conversations. Preserve my words verbatim where possible, especially for instructions and preferences.\n\n## Categories (output in this order):\n\n1. **Instructions**: Rules I\u2019ve explicitly asked you to follow going forward \u2014 tone, format, style, \"always do X\", \"never do Y\", and corrections to your behavior. Only include rules from stored memories, not from conversations.\n\n2. **Identity**: Name, age, location, education, family, relationships, languages, and personal interests.\n\n3. **Career**: Current and past roles, companies, and general skill areas.\n\n4. **Projects**: Projects I meaningfully built or committed to. Ideally ONE entry per project. Include what it does, current status, and any key decisions. Use the project name or a short descriptor as the first words of the entry.\n\n5. **Preferences**: Opinions, tastes, and working-style preferences that apply broadly.\n\n## Format:\n\nUse section headers for each category. Within each category, list one entry per line, sorted by oldest date first. Format each line as:\n\n[YYYY-MM-DD] - Entry content here.\n\nIf no date is known, use [unknown] instead.\n\n## Output:\n- Wrap the entire export in a single code block for easy copying.\n- After the code block, state whether this is the complete set or if more remain.`;
+let MODE = "dictee";
+const DEF_VRAI = new Set(["lens_actif", "agent_statut", "agent_details", "agent_compagnon", "dictee_actif", "agent_selection", "agent_pc", "agent_chrome"]);
+const DEFAUT_PLIE = {parlees:true};
+const ETAPES = {engine:"Downloading the engine", model:"Downloading the model"};
+const ULTRA_LG = new Set(["cs","da","nl","en","fi","fr","de","el","hu","it","pl","pt","ro","ru","es","sv"]);
+let S = {cfg:{}, canary:false, lid:false, autostart:false, langues:[]};
+let attend = false, tAttend = 0, confirmer = false;
+const api = () => (window.pywebview && window.pywebview.api) || null;
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+$$(".pts").forEach(p => { for(let i = 0; i < 5; i++){ const e = document.createElement("i"); if(i < +p.dataset.n) e.className = "o"; p.appendChild(e); } });
+
+// position de la pilule : on glisse la miniature, son centre est enregistre (fractions de l'ecran)
+const PIL_W = 0.26, PIL_H = 0.10, PIL_DEFAUT = [0.5, 0.91];
+let glisse = false;
+function xyActuel(){
+  const xy = S.cfg.pilule_xy;
+  return (xy && xy.length === 2) ? [xy[0], xy[1]] : PIL_DEFAUT.slice();
+}
+function placer(x, y){
+  const c = $("#pos-pilule");
+  c.style.left = ((Math.min(1 - PIL_W / 2, Math.max(PIL_W / 2, x)) - PIL_W / 2) * 100) + "%";
+  c.style.top = ((Math.min(1 - PIL_H / 2, Math.max(PIL_H / 2, y)) - PIL_H / 2) * 100) + "%";
+}
+function majPos(){
+  if(glisse) return;
+  const [x, y] = xyActuel(); placer(x, y);
+}
+function poserCarte(x, y, envoi){
+  x = Math.min(1, Math.max(0, x)); y = Math.min(1, Math.max(0, y));
+  S.cfg.pilule_xy = [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4];
+  placer(x, y);
+  if(envoi) envoyer("pilule_xy", S.cfg.pilule_xy);
+}
+(function(){
+  const ec = $("#pos-ecran"), ca = $("#pos-pilule");
+  const pos = ev => { const r = ec.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height]; };
+  let dec = [0, 0];
+  ca.addEventListener("pointerdown", ev => { glisse = true; ca.classList.add("glisse"); ca.setPointerCapture(ev.pointerId);
+    const [px, py] = pos(ev), [cx, cy] = xyActuel(); dec = [cx - px, cy - py]; });
+  ca.addEventListener("pointermove", ev => { if(!glisse) return; const [px, py] = pos(ev); poserCarte(px + dec[0], py + dec[1], false); });
+  const fin = () => { if(!glisse) return; glisse = false; ca.classList.remove("glisse"); envoyer("pilule_xy", S.cfg.pilule_xy); };
+  ca.addEventListener("pointerup", fin); ca.addEventListener("pointercancel", fin);
+  ec.addEventListener("pointerdown", ev => { if(ev.target !== ec) return; const [px, py] = pos(ev); poserCarte(px, py, true); });
+})();
+
+let tToast = 0;
+function toast(msg, err){
+  const t = $("#toast"); $("#toast-t").textContent = msg; t.classList.toggle("err", !!err); t.classList.add("vu");
+  clearTimeout(tToast); tToast = setTimeout(() => t.classList.remove("vu"), err ? 3600 : 2000);
+}
+const SANS_SUIVI = new Set(["charger_modele","decharger_modele","agent_stop","ultra_stop","precise_stop","memoire_supprimer","memoire_vider","memoire_importer","memoire_editer","memoire_ajouter","journal_vider","donnees_effacer","conversation_effacer","agent_supprimer","agent_decalage_reset","replies","@maj","@maj_installer","@maj_reparer","@relancer"]);
+const NOMS_LG = {};
+function libelle(k, v){
+  if(k === "language"){ const l = (S.langues || []).find(x => x[0] === v); return "Language: " + (l ? l[1] : v); }
+  if(k === "model") return "Model: " + ({parakeet:"Fast",canary:"Precise",ultra:"Ultra"}[v] || v);
+  if(k === "pilule_xy") return "Pill position saved";
+  if(k === "agent_position") return "Position: " + v;
+  if(k === "agent_prompt") return "Instructions saved";
+  if(k === "vocabulaire") return "Your words saved";
+  if(k === "agent_reflexion") return "Thinking: " + ({off: "Off", auto: "Auto", on: "On"}[v] || v);
+  if(k === "langues_parlees") return "Languages updated";
+  const b = document.querySelector('[data-k="' + k + '"]');
+  if(b){ const n = b.closest(".ligne").querySelector("b"); if(n) return n.textContent + (typeof v === "boolean" ? (v ? " on" : " off") : " saved"); }
+  return "Saved";
+}
+const MSG_DIRECT = {memoire_supprimer:"Forgotten", memoire_vider:"Memory cleared", memoire_importer:"Imported", memoire_editer:"Memory updated", memoire_ajouter:"Added to memory",
+  journal_vider:"History cleared", donnees_effacer:"All your data was erased", conversation_effacer:"Conversation cleared", agent_decalage_reset:"Position reset"};
+const attente = {};   // changements faits ici, pas encore confirmes par Hear : on ne les ecrase pas
+function envoyer(cle, val){
+  if(S.occupe && !SANS_SUIVI.has(cle) && cle !== "ultra_stop"){ toast("Locked while Hear is recording", true); return; }
+  if(cle === "model" && val === "ultra" && (S.ultra || {}).etat !== "pret"){ toast("Downloading Ultra\u2026"); }
+  else if(cle === "model" && val === "canary" && !S.canary){ toast("Downloading Precise\u2026"); }
+  else if(SANS_SUIVI.has(cle)){
+    if(MSG_DIRECT[cle]) toast(MSG_DIRECT[cle]);
+    // le pliage des sections : aucun message, mais on protege le changement contre une reponse de Hear qui arrive avec l'ancien etat
+    // (sans cela : la section s'ouvre, se referme, puis se rouvre)
+    if(cle === "replies") attente[cle] = {v: JSON.stringify(val), t: Date.now(), val, muet: true};
+  }
+  else attente[cle] = {v: JSON.stringify(val), t: Date.now(), val};
+  const a = api(); if(a) a.regler(cle, val);
+}
+
+function plie(c){ const r = (S.cfg.replies||{}); return c in r ? !!r[c] : !!DEFAUT_PLIE[c]; }
+function majPlis(){ $$(".section").forEach(el => el.classList.toggle("ferme", plie(el.dataset.s))); }
+function reglerPlis(obj){ S.cfg.replies = obj; majPlis(); envoyer("replies", obj); }
+
+function construire(){
+  const lg = $("#langues"), pl = $("#parlees");
+  lg.innerHTML = ""; pl.innerHTML = "";
+  S.langues.forEach(([code, nom]) => {
+    const a = document.createElement("div"); a.className = "puce"; a.dataset.c = code; a.textContent = nom;
+    a.onclick = () => { S.cfg.language = code; if(code === "auto") S.langOuvert = false; maj(); envoyer("language", code); };
+    lg.appendChild(a);
+    if(code !== "auto"){
+      const b = document.createElement("div"); b.className = "puce"; b.dataset.c = code; b.textContent = nom;
+      b.onclick = () => {
+        const l = new Set(S.cfg.langues_parlees || []);
+        l.has(code) ? l.delete(code) : l.add(code);
+        S.cfg.langues_parlees = [...l]; maj(); envoyer("langues_parlees", [...l]);
+      };
+      pl.appendChild(b);
+    }
+  });
+}
+
+function maj(){
+  const c = S.cfg, precis = c.model === "canary", ultra = c.model === "ultra", ul = S.ultra || {etat:"absent"};
+  $("#bd-ultra").textContent = ul.etat === "pret" ? "Installed" : ul.etat === "install" ? "Downloading…" : "Download 2.5 GB";
+  const prc = S.precise || {etat:"absent"};
+  $("#bd-precise").textContent = prc.etat === "install" ? "Downloading…" : S.canary && prc.etat !== "erreur" ? "Default" : "Download 1 GB";
+  $("#bd-precise").classList.remove("cache");
+  $("#precise-prog").style.display = prc.etat === "install" ? "" : "none";
+  $("#precise-arc").style.strokeDashoffset = 100 - (prc.pct || 0); $("#precise-pct").textContent = Math.round(prc.pct || 0) + "%";
+  // fin du telechargement (une seule fois) : l'anneau se complete puis s'efface, le badge « Installed » arrive
+  if(maj.ultraPrec === "install" && ul.etat === "pret"){
+    maj.tUltra = Date.now(); $("#ultra-prog").classList.add("termine");
+    const bu = $("#bd-ultra"); bu.classList.remove("nouveau"); void bu.offsetWidth; bu.classList.add("nouveau");
+    setTimeout(maj, 950);
+  }
+  if(ul.etat === "install") $("#ultra-prog").classList.remove("termine");
+  maj.ultraPrec = ul.etat;
+  const finUltra = maj.tUltra && Date.now() - maj.tUltra < 900;
+  $("#ultra-prog").style.display = ul.etat === "install" || finUltra ? "" : "none";
+  $("#ultra-arc").style.strokeDashoffset = finUltra ? 0 : 100 - (ul.pct || 0); $("#ultra-pct").textContent = finUltra ? "100%" : Math.round(ul.pct || 0) + "%";
+  $$("#seg .cm").forEach(b => { b.classList.toggle("on", b.dataset.m === c.model);
+    b.disabled = S.occupe || ul.etat === "install" || prc.etat === "install"; });
+  const autoU = ultra;
+  $("#auto-ultra").style.display = autoU ? "flex" : "none";
+  $("#langues").style.display = autoU ? "none" : "";
+  $$("#langues .puce").forEach(p => {
+    const code = p.dataset.c, dispo = !ultra || code === "auto" || ULTRA_LG.has(code);
+    p.style.display = dispo ? "" : "none";
+    p.classList.toggle("on", (precis || ultra) && c.language === code);
+    p.classList.toggle("ultra", ultra);
+    p.classList.toggle("off", !(precis || ultra) || (code === "auto" && !S.lid && !ultra));
+  });
+  const actif = precis && c.language === "auto" && S.lid, ps = new Set(c.langues_parlees || []);
+  $$("#parlees .puce").forEach(p => { p.classList.toggle("on", ps.has(p.dataset.c)); p.classList.toggle("off", !actif); });
+  $("#carte-parlees").classList.toggle("inactif", !actif);
+  $("#note-reco").textContent = S.occupe ? "Model locked while Hear is recording or transcribing."
+    : ul.etat === "erreur" ? "The Ultra download failed. Click Ultra to try again."
+    : ultra ? "Ultra detects the language by itself, even when you switch mid-sentence. 16 languages. For Bulgarian, Croatian, Estonian, Latvian, Lithuanian, Maltese, Slovak, Slovenian or Ukrainian, use Precise."
+    : prc.etat === "erreur" ? "The Precise download failed. Click Precise to try again."
+    : !S.canary ? "The Precise model isn't on this PC yet. Click Precise to download it (about 1 GB)."
+    : precis ? "Auto is reliable for French, English, Spanish, German, Italian and Russian. Otherwise, pick the language."
+    : "Fast detects the language by itself. Choose Precise to pick a language.";
+  $$(".bascule").forEach(b => { const k = b.dataset.k; b.classList.toggle("on", k === "autostart" ? !!S.autostart : k === "maj_auto" ? c.maj_auto !== false : DEF_VRAI.has(k) ? c[k] !== false : !!c[k]); });
+  const pos = c.agent_position || "bas", ip = ["haut","centre","bas"].indexOf(pos);
+  majPos();
+  const vi = S.vision || {etat:"absent"};
+  $("#vis-prog").style.display = vi.etat === "install" ? "" : "none";
+  $("#vis-barre").style.transform = "scaleX(" + (vi.pct || 0) / 100 + ")";
+  $("#vis-sub").textContent = vi.etat === "erreur" ? "Download failed. Switch it off and on to retry." : "Reads screenshots of sites and of your screen when you ask (uses 670 MB)";
+  if((c.vocabulaire || "") !== maj.cleV){ maj.cleV = c.vocabulaire || ""; dessinerMots(); }
+  const rf = c.agent_reflexion || (c.agent_raisonnement ? "on" : "auto");
+  $$("#reflexion button").forEach(b => { const on = b.dataset.v === rf; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+  $("#refl-sub").textContent = {off: "Answers right away, never reasons first", auto: "It decides by itself when a question needs reasoning",
+                                on: "Always reasons before answering. Slower"}[rf];
+  const dm = c.decharge_min === undefined ? 30 : c.decharge_min;
+  $$("#decharge button").forEach(b => { const on = Number(b.dataset.v) === dm; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+  $("#decharge-sub").textContent = dm === 0 ? "The AI models stay in memory until you quit Hear (uses up to 5 GB)"
+    : "Unloads the AI models after " + (dm === 60 ? "1 hour" : dm + " min") + " without use. A key press loads them back, which takes a few seconds";
+  const coeurs = S.coeurs || 4, ct = c.cpu_threads || "auto";
+  const nbt = {leger: Math.max(1, Math.min(4, Math.floor(coeurs / 4))), auto: Math.max(1, Math.min(8, Math.floor(coeurs / 2))), max: Math.max(1, Math.min(16, coeurs - 1))};
+  const permis = S.threads_permis || {leger: true, auto: true, max: true};
+  const ctEff = permis[ct] === false || !nbt[ct] ? "auto" : ct;
+  const raison = {leger: "Same as Auto on this PC (it has fewer than 4 threads)", max: "Your PC has fewer than 8 threads: Max would leave too little for Windows and your other apps"};
+  $$("#threads button").forEach(b => { const v = b.dataset.v, on = v === ctEff, ok = permis[v] !== false;
+    b.classList.toggle("on", on); b.classList.toggle("bloque", !ok); b.setAttribute("aria-checked", on); b.setAttribute("aria-disabled", !ok);
+    b.title = ok ? nbt[v] + " of " + coeurs + " threads" : raison[v]; });
+  $("#threads-sub").textContent = "Uses " + nbt[ctEff] + " of your " + coeurs + " processor threads for the AI models. Lower it if your PC slows down while Hear works. Applies the next time the models load";
+  const chg = S.charge || {}, nomDictee = {ultra: "Ultra", canary: "Precise"}[c.model] || "Fast";
+  const etatModele = v => v === true ? "pret" : v === "pret" || v === "chargement" ? v : "absent";
+  const lignes = [["Dictation (" + nomDictee + ")", etatModele(chg.dictee)]];
+  if(c.agent_actif) lignes.push(["Assistant", etatModele(chg.assistant)]);
+  const mot = {absent: "Not loaded", chargement: "Loading…", pret: "Ready"};
+  const enMemoire = lignes.filter(l => l[1] === "pret"), enCours = lignes.some(l => l[1] === "chargement");
+  const cleListe = JSON.stringify(lignes);
+  if(cleListe !== maj.cleListe){                       // on ne redessine que si quelque chose change : l'animation du point ne repart pas a zero
+    maj.cleListe = cleListe;
+    $("#mod-liste").innerHTML = lignes.map((l, i) => '<div class="mod-ligne ' + l[1] + '"><i class="mod-pt"></i><span>' + l[0] + '</span><em>' + mot[l[1]] + '</em>'
+      + (l[1] === "chargement" ? "" : '<button data-a="' + (l[1] === "pret" ? "decharger_modele" : "charger_modele") + '" data-m="' + (i ? "assistant" : "dictee") + '">' + (l[1] === "pret" ? "Unload" : "Load") + '</button>')
+      + '</div>').join("");
+  }
+  $("#mod-etat").textContent = enCours ? "Loading, this takes a few seconds. You can already speak: it will be transcribed as soon as it is ready"
+    : enMemoire.length ? "In memory. Point at a model to unload it" : "Nothing loaded. The models load when you press a key, or point at one to load it now";
+  $("#mod-decharger").disabled = !enMemoire.length || enCours || !!S.occupe;
+  $("#ln-alterne").classList.toggle("inactif", !ultra);
+  $("#alterne-sub").textContent = ultra ? "For cards with 4 to 6 GB. When the assistant answers, Ultra dictation unloads. After 3 min without the assistant, it unloads and dictation comes back" : "Needs the Ultra model";
+  const pr = $("#prompt");
+  if(document.activeElement !== pr && pr.value !== (c.agent_prompt || "")) pr.value = c.agent_prompt || "";
+  $("#prompt-n").textContent = (pr.value.length ? pr.value.length + " / 2000" : "");
+  const mem = S.memoire || [], cleMem = JSON.stringify(mem);
+  if(cleMem !== maj.cleMem){
+    maj.cleMem = cleMem;
+    const avant = maj.memAvant, box = $("#mem"); box.innerHTML = "";
+    maj.memAvant = new Set(mem.map(f => f.t));
+    if(!mem.length){ box.innerHTML = '<div class="vide">Nothing yet. Say \u201cremember that\u2026\u201d and it will keep it.</div>'; }
+    mem.forEach((f, i) => {
+      const r = document.createElement("div"); r.className = "mem" + (avant && !avant.has(f.t) ? " entre" : "");
+      r.innerHTML = "<span></span><i class=\"ed\" title=\"Edit\"><svg viewBox=\"0 0 12 12\" width=\"11\" height=\"11\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" fill=\"none\"><path d=\"M2 10l.5-2.3L8.2 2a1.2 1.2 0 011.7 1.7L4.3 9.5z\"/></svg></i><i title=\"Forget\"><svg viewBox=\"0 0 8 8\" width=\"8\" height=\"8\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" fill=\"none\"><path d=\"M1 1l6 6M7 1L1 7\"/></svg></i>";
+      const sp = r.children[0], ed = r.children[1], del = r.children[2];
+      sp.textContent = f.t;
+      const finir = () => {
+        if(sp.contentEditable !== "true") return;
+        sp.contentEditable = "false";
+        const v = sp.textContent.trim();
+        if(v && v !== f.t){ f.t = v; maj.cleMem = JSON.stringify(S.memoire); envoyer("memoire_editer", [i, v]); }
+        else sp.textContent = f.t;
+      };
+      const editer = () => { sp.contentEditable = "true"; sp.focus(); const g = getSelection(); g.selectAllChildren(sp); g.collapseToEnd(); };
+      ed.onclick = editer; sp.ondblclick = editer; sp.onblur = finir;
+      sp.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); sp.blur(); } if(e.key === "Escape"){ e.stopPropagation(); sp.textContent = f.t; sp.contentEditable = "false"; } };
+      del.onclick = () => {
+        if(r.classList.contains("sort")) return;
+        r.classList.add("sort");
+        const oublier = () => { S.memoire.splice(i, 1); maj.cleMem = null; envoyer("memoire_supprimer", i); maj(); };
+        const doux = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        r.animate(doux ? [{opacity: 1}, {opacity: 0}] : [{height: r.offsetHeight + "px", opacity: 1}, {height: "0px", opacity: 0, paddingTop: "0px", paddingBottom: "0px"}],
+                  {duration: 200, easing: "cubic-bezier(.23,1,.32,1)", fill: "forwards"}).onfinish = oublier;
+      };
+      box.appendChild(r);
+    });
+    $("#mem-note").textContent = mem.length ? mem.length + " thing" + (mem.length > 1 ? "s" : "") + " remembered on this PC only." : "Stored only on this PC.";
+    $("#mem-vider").style.display = mem.length ? "" : "none";
+    $("#mem-tout").style.display = mem.length > 6 ? "" : "none";
+  }
+  const jr = S.journal || [], cleJ = JSON.stringify(jr);
+  if(cleJ !== maj.cleJ){
+    maj.cleJ = cleJ;
+    const hb = $("#hist"); hb.innerHTML = "";
+    if(!jr.length){ hb.innerHTML = '<div class="vide">Nothing yet.</div>'; }
+    jr.forEach(e => {
+      const r = document.createElement("div"); r.className = "mem";
+      const sp = document.createElement("span");
+      sp.textContent = e.d + " \u00b7 " + e.q + ((e.a && e.a.length) ? "  \u2192  " + e.a.join(", ") : "");
+      r.appendChild(sp); hb.appendChild(r);
+    });
+    $("#hist-vider").style.display = jr.length ? "" : "none";
+  }
+  document.body.classList.toggle("occupe", !!S.occupe);
+  $("#prompt").readOnly = !!S.occupe;
+  const mj = S.maj || {}, va = S.version_active;
+  const hh = mj.t ? new Date(mj.t * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "";
+  const me = $("#maj-etat"); me.className = "";
+  if(mj.etat === "check") me.textContent = "Checking\u2026";
+  else if(mj.etat === "installe") { me.textContent = "Updated to " + mj.version + " \u00b7 " + mj.n + " files verified \u2713"; me.className = "ok"; }
+  else if(mj.etat === "a_jour") { me.textContent = "Version " + (S.version || "") + " \u00b7 up to date \u00b7 " + mj.n + " files verified \u2713 \u00b7 " + hh; me.className = "ok"; }
+  else if(mj.etat === "dispo") me.textContent = "Version " + (S.version || "") + " \u00b7 a new version is available \u00b7 " + hh;
+  else if(mj.etat === "installation") me.textContent = "Installing version " + mj.version + "\u2026 Hear will restart";
+  else if(mj.etat === "ko") { me.textContent = mj.msg || "Some files differ from the installed version."; me.className = "ko"; }
+  else if(mj.etat === "erreur") { me.textContent = mj.msg || "Could not check for updates."; me.className = "ko"; }
+  else me.textContent = "Version " + (S.version || "");
+  $("#maj-btn").classList.toggle("attend", mj.etat === "check" || mj.etat === "installation");
+  // apres « Check now » : un message clair, une seule fois (a jour, mise a jour en cours, erreur)
+  if(S.majClic && mj.t && mj.t * 1000 >= S.majClic - 1500 && mj.t !== S.majVu && ["a_jour", "installation", "erreur"].includes(mj.etat)){
+    S.majVu = mj.t;
+    if(mj.etat === "a_jour") toast("You're up to date ✓ No new update");
+    else if(mj.etat === "installation") toast("Updating… Hear restarts by itself");
+    else toast(mj.msg || "Could not check for updates", true);
+  }
+  const dispo = mj.etat === "dispo", dev = mj.canal === "dev";
+  $("#maj-dispo").style.display = dispo ? "" : "none";
+  if(dispo){
+    $("#maj-dispo-titre").textContent = "Version " + mj.version + (dev ? " \u00b7 development version" : " \u00b7 final release");
+    $("#maj-dispo-t").textContent = (dev ? "Unfinished test version. " : "") + "Hear will restart after the update (about 5 seconds).";
+  }
+  $("#maj-repar").style.display = mj.etat === "ko" ? "" : "none";
+  majDonnees();
+  if(S.magasin) ["#ln-maj", "#ln-majauto", "#ln-majdev", "#maj-dispo", "#maj-repar", "#ln-autostart"].forEach(s => $(s).style.display = "none");
+  const rd = !!(va && S.version && va !== S.version);
+  $("#maj-redem").style.display = rd ? "" : "none";
+  if(rd) $("#maj-redem-t").textContent = "Version " + S.version + " is installed, but Hear is still running " + va + ".";
+  const agOn = !!c.agent_actif;
+  $("#ln-net").classList.toggle("inactif", !agOn || ultra);
+  $("#ln-direct").classList.toggle("inactif", !ultra);
+  $("#direct-sub").textContent = ultra ? "The text appears in the app sentence by sentence, as soon as it's ready" : "Needs the Ultra model";
+  $("#net-sub").textContent = ultra ? "Not available with Ultra" : agOn ? "The assistant fixes punctuation and filler words. A bit slower" : "Needs the voice assistant to be on";
+  ["pastille", "perf"].forEach(n => { const el = $('[data-s="' + n + '"]'); if(el) el.classList.toggle("inactif", !agOn); });
+  $("#kbd-a").textContent = (c.touche_agent || "f10").toUpperCase();
+  const ag = S.agent || {etat:"absent"}, kag = (c.touche_agent || "f10").toUpperCase();
+  $("#ag-sub").textContent = ag.etat === "install" ? "Setting up\u2026 " + Math.round(ag.pct || 0) + "%"
+    : ag.etat === "erreur" ? "Download failed. Switch it off and on to retry."
+    : c.agent_actif ? `Press ${kag}, ask out loud, read the answer.` : "Search the web, open apps, answer questions.";
+  $("#ag-prog").style.display = ag.etat === "install" ? "" : "none";
+  $("#ag-txt").textContent = ETAPES[ag.etape] || "Preparing";
+  $("#ag-barre").style.transform = "scaleX(" + (ag.pct || 0) / 100 + ")";
+  const go = ((ag.taille || 0) / 1e9).toFixed(1);
+  $("#ag-suppr").style.display = ag.etat !== "install" && (ag.taille || 0) > 1e6 ? "" : "none";
+  $("#ag-taille").textContent = ag.etat === "pret" ? `Installed \u00b7 ${go} GB on this PC` : `Partial download \u00b7 ${go} GB on this PC`;
+  $("#ag-note").textContent = ag.etat === "erreur" && ag.msg ? ag.msg
+    : "Runs on your PC with a small model (about 3 GB). Only web searches use the internet.";
+  const nom = (c.touche || "f9").toUpperCase();
+  $("#kbd").textContent = attend ? "…" : nom;
+  const ch = $("#changer"); ch.textContent = attend ? "Press a key…" : "Change"; ch.classList.toggle("attend", attend);
+  $("#aide").textContent = MODE === "assistant" ? `Press ${kag}: type your question, or tap the mic to talk. Press ${kag} twice for these settings. Esc closes.`
+    : `Double-press ${nom} to open Settings. Quit Hear from the tray icon.`;
+  majPlis();
+}
+
+async function rafraichir(){
+  const a = api(); if(!a) return;
+  try{
+    const e = await a.etat();
+    for(const k in attente){
+      const cur = k === "autostart" ? e.autostart : e.cfg[k];
+      if(JSON.stringify(cur) === attente[k].v){ if(!attente[k].muet) toast(libelle(k, attente[k].val)); delete attente[k]; }
+      else if(Date.now() - attente[k].t > 4000){ if(!attente[k].muet) toast("Hear did not confirm: " + libelle(k, attente[k].val).toLowerCase() + ". Try again.", true); delete attente[k]; }
+      else if(k === "autostart") e.autostart = JSON.parse(attente[k].v);
+      else e.cfg[k] = JSON.parse(attente[k].v);
+    }
+    const ancienne = S.cfg.touche;
+    S = e;
+    if(attend && (S.cfg.touche !== ancienne || Date.now() - tAttend > 8000)) attend = false;
+    maj();
+  }catch(_){}
+}
+
+$$(".titre").forEach(t => t.onclick = () => {
+  if(MODE === "assistant") return;
+  const c = t.parentElement.dataset.s, r = Object.assign({}, S.cfg.replies||{});
+  r[c] = !plie(c); reglerPlis(r);
+});
+$$(".bascule").forEach(b => b.onclick = () => {
+  const k = b.dataset.k;
+  if(k === "autostart"){ S.autostart = !S.autostart; envoyer("autostart", S.autostart); }
+  else { S.cfg[k] = (k === "maj_auto" || DEF_VRAI.has(k)) ? !(S.cfg[k] !== false) : !S.cfg[k]; envoyer(k, S.cfg[k]); }
+  maj();
+});
+$$("#seg .cm").forEach(b => b.onclick = () => {
+  if(b.disabled) return;
+  if(b.dataset.m === "ultra" && (S.ultra || {}).etat !== "pret"){ envoyer("model", "ultra"); return; }   // d'abord le telechargement
+  if(b.dataset.m === "canary" && !S.canary){ envoyer("model", "canary"); return; }
+  S.cfg.model = b.dataset.m; maj(); envoyer("model", b.dataset.m);
+});
+$("#ultra-stop").onclick = () => envoyer("ultra_stop", Date.now());
+$("#precise-stop").onclick = () => envoyer("precise_stop", Date.now());
+$$("[data-pp]").forEach(x => x.onclick = () => { poserCarte(xyActuel()[0], parseFloat(x.dataset.pp), true); });
+$("#pos-reset").onclick = () => { S.cfg.pilule_xy = null; envoyer("agent_decalage_reset", Date.now()); majPos(); };
+$("#mem-tout").onclick = () => { const m = $("#mem"); m.classList.toggle("tout"); $("#mem-tout").textContent = m.classList.contains("tout") ? "Collapse" : "Show all"; };
+const ajouter = () => { const i = $("#mem-new"), v = i.value.trim(); if(!v) return; i.value = ""; (S.memoire = S.memoire || []).push({t: v}); maj.cleMem = null; envoyer("memoire_ajouter", v); maj(); };
+$("#mem-add").onclick = ajouter; $("#mem-new").onkeydown = e => { if(e.key === "Enter") ajouter(); };
+$("#maj-btn").onclick = () => { if(S.occupe) return toast("Locked while Hear is recording", true); S.maj = {etat: "check"}; S.majClic = Date.now(); maj(); envoyer("@maj", Date.now()); };
+$("#maj-redem-btn").onclick = () => envoyer("@relancer", Date.now());
+// emplacement des fichiers de Hear : un autre dossier ou un autre disque
+let donneesTaille = null, donneesCible = null;
+function majDonnees(){
+  const t = $("#donnees-t"); if(!t || !S.donnees) return;
+  t.textContent = S.donnees + (donneesTaille != null ? " · " + (donneesTaille / 1e9).toFixed(1) + " GB" : "");
+}
+async function lireTaille(){ const a = api(); if(a && a.donnees_taille){ donneesTaille = await a.donnees_taille(); majDonnees(); } }
+$("#site-btn").onclick = () => { const a = api(); if(a && a.ouvrir_site) a.ouvrir_site(); };
+$("#donnees-btn").onclick = async () => {
+  if(S.occupe) return toast("Locked while Hear is recording", true);
+  const a = api(); if(!a || !a.choisir_dossier) return;
+  const r = await a.choisir_dossier();
+  if(!r || !r.cible){ if(r && r.erreur) toast(r.erreur, true); return; }
+  if(r.erreur) return toast(r.erreur, true);
+  donneesCible = r.cible;
+  $("#donnees-cible").textContent = "To " + r.cible + ". Hear will restart and move them, AI models included.";
+  $("#donnees-conf").style.display = "";
+};
+$("#donnees-ok").onclick = async () => {
+  const a = api(); if(!a || !donneesCible) return;
+  const r = await a.deplacer_donnees(donneesCible);
+  if(r && r.erreur) return toast(r.erreur, true);
+  $("#donnees-conf").style.display = "none";
+  toast("Hear is restarting to move its files…");
+};
+$("#maj-dl").onclick = () => { if(S.occupe) return toast("Locked while Hear is recording", true); S.maj = Object.assign({}, S.maj, {etat: "installation"}); maj(); toast("Downloading\u2026 Hear will restart"); envoyer("@maj_installer", Date.now()); };
+let confirmerRepar = false;
+$("#maj-repar-btn").onclick = () => {
+  const b = $("#maj-repar-btn");
+  if(!confirmerRepar){ confirmerRepar = true; b.textContent = "Sure? Click again"; setTimeout(() => { confirmerRepar = false; b.textContent = "Repair"; }, 3500); return; }
+  confirmerRepar = false; b.textContent = "Repair"; envoyer("@maj_reparer", Date.now());
+};
+let defautCharge = false;
+$("#defaut-bt").onclick = async () => {
+  const p = $("#defaut"), z = $("#defaut-z"), ouvert = z.classList.contains("ouvert");
+  if(!ouvert && !defautCharge){ const a = api(); if(a && a.prompt_defaut){ p.textContent = await a.prompt_defaut(); defautCharge = true; } }
+  z.classList.toggle("ouvert", !ouvert); $("#defaut-bt").textContent = ouvert ? "Show" : "Hide";
+};
+$("#mem-vider").onclick = () => { S.memoire = []; maj.cleMem = null; envoyer("memoire_vider", Date.now()); maj(); };
+$("#conv-vider").onclick = () => { const b = $("#conv-vider"); envoyer("conversation_effacer", Date.now()); b.textContent = "Cleared"; setTimeout(() => { b.textContent = "Clear"; }, 1600); };
+$("#mem-imp-b").onclick = () => $("#imp-z").classList.toggle("ouvert");
+$("#imp-copy").onclick = () => {
+  const fin = () => { $("#imp-copie").textContent = "Copied"; setTimeout(() => $("#imp-copie").textContent = "", 1800); };
+  try { navigator.clipboard.writeText(PROMPT_IMPORT).then(fin, () => { $("#imp-txt").value = PROMPT_IMPORT; $("#imp-txt").select(); document.execCommand("copy"); $("#imp-txt").value = ""; fin(); }); }
+  catch(e) { $("#imp-txt").value = PROMPT_IMPORT; $("#imp-txt").select(); document.execCommand("copy"); $("#imp-txt").value = ""; fin(); }
+};
+$("#imp-go").onclick = () => {
+  const v = $("#imp-txt").value.trim(); if(!v) return;
+  envoyer("memoire_importer", v); $("#imp-txt").value = "";
+  $("#imp-res").textContent = "Imported. It shows up below in a moment."; setTimeout(() => $("#imp-res").textContent = "", 4000);
+};
+$("#hist-vider").onclick = () => { S.journal = []; maj.cleJ = null; envoyer("journal_vider", Date.now()); maj(); };
+// Maintenir pour confirmer une action irreversible : le rouge remplit le bouton en 2 s ; relacher avant annule.
+function maintenirPour(bouton, action, consigne){
+  const fill = bouton.querySelector(".remplir");
+  let fini = false, actif = false, tAppui = 0;
+  const debut = () => {
+    if(actif || S.occupe) return;
+    actif = true; fini = false; tAppui = Date.now();
+    bouton.classList.add("tenu");
+  };
+  const fin = () => {
+    if(!actif) return;
+    actif = false; bouton.classList.remove("tenu");
+    if(!fini && Date.now() - tAppui < 300) toast(consigne);            // simple clic : on explique le geste
+  };
+  fill.addEventListener("transitionend", e => {
+    if(e.propertyName !== "clip-path" || !bouton.classList.contains("tenu")) return;
+    fini = true; actif = false; bouton.classList.remove("tenu"); action();
+  });
+  bouton.addEventListener("pointerdown", e => { try { bouton.setPointerCapture(e.pointerId); } catch(_) {} debut(); });
+  bouton.addEventListener("pointerup", fin); bouton.addEventListener("pointercancel", fin); bouton.addEventListener("lostpointercapture", fin);
+  bouton.addEventListener("keydown", e => { if((e.key === "Enter" || e.key === " ") && !e.repeat){ e.preventDefault(); debut(); } });
+  bouton.addEventListener("keyup", e => { if(e.key === "Enter" || e.key === " ") fin(); });
+}
+maintenirPour($("#tout-vider"), () => {
+  S.memoire = []; S.journal = []; maj.cleMem = null; maj.cleJ = null; envoyer("donnees_effacer", Date.now()); maj();
+}, "Hold the button to erase everything");
+$$("#nav .puce").forEach(p => p.onclick = () => { const el = $('[data-s="' + p.dataset.to + '"]'); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); });
+$("#vis-stop").onclick = () => { envoyer("agent_vision", false); };
+let tPrompt = 0;
+$$("#reflexion button").forEach(b => b.onclick = () => { S.cfg.agent_reflexion = b.dataset.v; envoyer("agent_reflexion", b.dataset.v); maj(); });
+$("#mod-decharger").onclick = () => { envoyer("decharger_maintenant", Date.now()); toast("Unloading…"); };
+$("#mod-liste").onclick = e => {                       // un modele a la fois : « Load » / « Unload » au survol de sa ligne
+  const b = e.target.closest("button[data-m]"); if(!b) return;
+  envoyer(b.dataset.a, b.dataset.m + ":" + Date.now());
+  toast(b.dataset.a === "charger_modele" ? "Loading…" : "Unloading…");
+};
+$$("#threads button").forEach(b => b.onclick = () => {
+  if(((S.threads_permis || {})[b.dataset.v]) === false){ toast(b.title, true); return; }       // choix que ce PC n'accepte pas
+  S.cfg.cpu_threads = b.dataset.v; envoyer("cpu_threads", b.dataset.v); maj();
+});
+$$("#decharge button").forEach(b => b.onclick = () => { S.cfg.decharge_min = Number(b.dataset.v); envoyer("decharge_min", Number(b.dataset.v)); maj(); });
+// « Your words » : une etiquette par mot ; Entree ou virgule ajoute, la croix (ou Retour arriere sur un champ vide) retire
+const mots = () => (S.cfg.vocabulaire || "").split(",").map(m => m.trim()).filter(Boolean);
+function dessinerMots(){
+  const box = $("#mots"), saisie = $("#mot-new");
+  const avant = dessinerMots.fait ? new Set([...box.querySelectorAll(".etiquette > span")].map(s => s.textContent.toLowerCase())) : null;
+  dessinerMots.fait = true;
+  box.querySelectorAll(".etiquette").forEach(e => e.remove());
+  mots().forEach((m, i) => {
+    const e = document.createElement("span"); e.className = "etiquette" + (avant && !avant.has(m.toLowerCase()) ? " neuf" : "");
+    e.innerHTML = '<span></span><button type="button"><svg viewBox="0 0 8 8" width="8" height="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M1 1l6 6M7 1L1 7"/></svg></button>';
+    e.children[0].textContent = m;
+    e.children[1].setAttribute("aria-label", "Remove " + m);
+    e.children[1].onclick = () => { const n = mots(); n.splice(i, 1); reglerMots(n); };
+    box.insertBefore(e, saisie);
+  });
+}
+function reglerMots(liste){
+  S.cfg.vocabulaire = liste.join(", "); maj.cleV = S.cfg.vocabulaire; dessinerMots(); envoyer("vocabulaire", S.cfg.vocabulaire);
+}
+function ajouterMot(){
+  const i = $("#mot-new"), v = i.value.replace(/,/g, " ").replace(/\s+/g, " ").trim(); i.value = "";
+  if(v && !mots().some(m => m.toLowerCase() === v.toLowerCase())) reglerMots(mots().concat([v]));
+}
+$("#mot-new").onkeydown = e => {
+  if(e.key === "Enter" || e.key === ","){ e.preventDefault(); ajouterMot(); }
+  else if(e.key === "Backspace" && !e.target.value && mots().length){ reglerMots(mots().slice(0, -1)); }
+};
+$("#mot-new").onblur = ajouterMot;
+$("#mots").onclick = e => { if(e.target.id === "mots") $("#mot-new").focus(); };
+$("#prompt").oninput = () => { clearTimeout(tPrompt); const v = $("#prompt").value; $("#prompt-n").textContent = v ? v.length + " / 2000" : ""; tPrompt = setTimeout(() => { S.cfg.agent_prompt = v; envoyer("agent_prompt", v); }, 500); };
+$("#ag-stop").onclick = () => { envoyer("agent_stop", Date.now()); };
+maintenirPour($("#ag-del"), () => envoyer("agent_supprimer", Date.now()), "Hold the button to delete the AI model files");
+function setMode(m, anim){
+  if(m !== "assistant") m = "dictee";
+  MODE = m;
+  document.body.classList.toggle("m-assistant", m === "assistant"); document.body.classList.toggle("m-dictee", m !== "assistant");
+  const u = $("#univers"); u.classList.toggle("p1", m === "assistant");
+  $$("#univers button").forEach(b => b.classList.toggle("on", b.dataset.u === m));
+  document.title = m === "assistant" ? "Hear Assistant" : "Hear";
+  if(anim){ const c = $(".corps"); c.classList.remove("change"); void c.offsetWidth; c.classList.add("change"); }
+  const a = api(); if(a && a.univers) a.univers(m);
+  if(S && S.cfg) maj();
+}
+$$("#univers button").forEach(b => b.onclick = () => { if(b.dataset.u !== MODE) setMode(b.dataset.u, true); });
+$("#changer").onclick = () => { attend = true; tAttend = Date.now(); maj(); const a = api(); if(a) a.touche(); };
+const fermer = () => { document.body.classList.add("sortie"); setTimeout(() => { const a = api(); if(a) a.fermer(); }, 150); };
+$("#rouge").onclick = fermer; $("#quitter").onclick = fermer;
+$("#jaune").onclick = () => reglerPlis(Object.fromEntries(SECTIONS.map(s => [s, true])));
+$("#vert").onclick = () => reglerPlis(Object.fromEntries(SECTIONS.map(s => [s, false])));
+addEventListener("keydown", e => { if(e.key === "Escape") fermer(); });
+
+async function demarrer(){
+  const a = api(); if(!a) return;
+  const m0 = await a.page();
+  S = await a.etat(); construire(); setMode(m0, false);
+  lireTaille();
+
+  setInterval(rafraichir, 700);
+  window.changerUnivers = m => setMode(m, true);
+}
+if(window.pywebview && window.pywebview.api) demarrer(); else addEventListener("pywebviewready", demarrer);
+</script>
+</body>
+</html>
